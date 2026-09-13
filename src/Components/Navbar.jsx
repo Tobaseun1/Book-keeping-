@@ -29,17 +29,20 @@ function Navbar() {
                     </a>
                 </div>
 
-                <div className="flex items-center gap-5">
-                    <button className="text-gray-700">
+                <div className="flex items-center gap-6">
+                    <a
+                        href="/dashboard"
+                        className="text-gray-700 hover:text-blue-600"
+                    >
                         Login
-                    </button>
+                    </a>
 
-                    <Link
-                        to="/dashboard"
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+                    <a
+                        href="/dashboard"
+                        className="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700"
                     >
                         Get Started
-                    </Link>
+                    </a>
                 </div>
 
             </div>
