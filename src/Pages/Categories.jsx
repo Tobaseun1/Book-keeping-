@@ -4,12 +4,40 @@ function Categories() {
     const [transactions, setTransactions] = useState([]);
 
     useEffect(() => {
+        loadTransactions();
+
+        window.addEventListener("transactionsUpdated", loadTransactions);
+
+        return () => {
+            window.removeEventListener(
+                "transactionsUpdated",
+                loadTransactions
+            );
+        };
+    }, []);
+
+    function loadTransactions() {
         const saved = localStorage.getItem("transactions");
 
         if (saved) {
             setTransactions(JSON.parse(saved));
+        } else {
+            setTransactions([]);
         }
-    }, []);
+    }
+
+    const currency =
+        localStorage.getItem("currency") || "NGN";
+
+    const currencySymbols = {
+        NGN: "₦",
+        USD: "$",
+        GBP: "£",
+        EUR: "€",
+    };
+
+    const currencySymbol =
+        currencySymbols[currency] || "₦";
 
     const categories = [
         "Sales",
@@ -28,7 +56,11 @@ function Categories() {
                     transaction.category === category &&
                     transaction.type === "in"
             )
-            .reduce((total, transaction) => total + transaction.amount, 0);
+            .reduce(
+                (total, transaction) =>
+                    total + transaction.amount,
+                0
+            );
     }
 
     function getMoneyOut(category) {
@@ -38,7 +70,18 @@ function Categories() {
                     transaction.category === category &&
                     transaction.type === "out"
             )
-            .reduce((total, transaction) => total + transaction.amount, 0);
+            .reduce(
+                (total, transaction) =>
+                    total + transaction.amount,
+                0
+            );
+    }
+
+    function getTransactionCount(category) {
+        return transactions.filter(
+            (transaction) =>
+                transaction.category === category
+        ).length;
     }
 
     return (
@@ -85,28 +128,20 @@ function Categories() {
                     </a>
 
                     <a
-                        href="#"
+                        href="/reports"
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
                     >
                         📈 Reports
                     </a>
 
                     <a
-                        href="#"
+                        href="/settings"
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
                     >
                         ⚙️ Settings
                     </a>
 
                 </nav>
-
-                <div className="p-4 border-t border-gray-200">
-
-                    <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50">
-                        🚪 Logout
-                    </button>
-
-                </div>
 
             </aside>
 
@@ -124,7 +159,7 @@ function Categories() {
                             </h2>
 
                             <p className="text-sm text-gray-500">
-                                Understand where your money comes from and goes.
+                                See where your money is going.
                             </p>
                         </div>
 
@@ -142,11 +177,11 @@ function Categories() {
                     <div className="mb-8">
 
                         <h1 className="text-3xl font-bold text-gray-900">
-                            Categories
+                            Financial Categories
                         </h1>
 
                         <p className="text-gray-500 mt-2">
-                            See how your transactions are distributed.
+                            Track your income and expenses by category.
                         </p>
 
                     </div>
@@ -156,9 +191,17 @@ function Categories() {
 
                         {categories.map((category) => {
 
-                            const moneyIn = getMoneyIn(category);
-                            const moneyOut = getMoneyOut(category);
-                            const total = moneyIn + moneyOut;
+                            const moneyIn =
+                                getMoneyIn(category);
+
+                            const moneyOut =
+                                getMoneyOut(category);
+
+                            const transactionCount =
+                                getTransactionCount(category);
+
+                            const totalActivity =
+                                moneyIn + moneyOut;
 
                             return (
                                 <div
@@ -166,30 +209,18 @@ function Categories() {
                                     className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
                                 >
 
-                                    {/* TOP */}
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex items-center justify-between">
 
-                                        <div className="flex items-center gap-3">
+                                        <h2 className="text-lg font-bold text-gray-900">
+                                            {category}
+                                        </h2>
 
-                                            <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                                                📁
-                                            </div>
-
-                                            <div>
-                                                <h2 className="font-bold text-gray-900">
-                                                    {category}
-                                                </h2>
-
-                                                <p className="text-xs text-gray-500">
-                                                    {transactions.filter(
-                                                        (transaction) =>
-                                                            transaction.category === category
-                                                    ).length}{" "}
-                                                    transactions
-                                                </p>
-                                            </div>
-
-                                        </div>
+                                        <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                                            {transactionCount} transaction
+                                            {transactionCount !== 1
+                                                ? "s"
+                                                : ""}
+                                        </span>
 
                                     </div>
 
@@ -200,38 +231,38 @@ function Categories() {
                                             Total Activity
                                         </p>
 
-                                        <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                                            ₦{total.toLocaleString()}
-                                        </h3>
+                                        <p className="text-2xl font-bold text-gray-900 mt-1">
+                                            {currencySymbol}
+                                            {totalActivity.toLocaleString()}
+                                        </p>
 
                                     </div>
 
-                                    {/* IN / OUT */}
-                                    <div className="grid grid-cols-2 gap-3 mt-5">
+                                    {/* MONEY IN */}
+                                    <div className="mt-5 flex justify-between">
 
-                                        <div className="bg-green-50 rounded-xl p-3">
+                                        <span className="text-sm text-gray-500">
+                                            Money In
+                                        </span>
 
-                                            <p className="text-xs text-gray-500">
-                                                Money In
-                                            </p>
+                                        <span className="font-semibold text-green-600">
+                                            {currencySymbol}
+                                            {moneyIn.toLocaleString()}
+                                        </span>
 
-                                            <p className="font-bold text-green-600 mt-1">
-                                                ₦{moneyIn.toLocaleString()}
-                                            </p>
+                                    </div>
 
-                                        </div>
+                                    {/* MONEY OUT */}
+                                    <div className="mt-3 flex justify-between">
 
-                                        <div className="bg-red-50 rounded-xl p-3">
+                                        <span className="text-sm text-gray-500">
+                                            Money Out
+                                        </span>
 
-                                            <p className="text-xs text-gray-500">
-                                                Money Out
-                                            </p>
-
-                                            <p className="font-bold text-red-500 mt-1">
-                                                ₦{moneyOut.toLocaleString()}
-                                            </p>
-
-                                        </div>
+                                        <span className="font-semibold text-red-500">
+                                            {currencySymbol}
+                                            {moneyOut.toLocaleString()}
+                                        </span>
 
                                     </div>
 
@@ -240,6 +271,33 @@ function Categories() {
                         })}
 
                     </div>
+
+                    {/* EMPTY MESSAGE */}
+                    {transactions.length === 0 && (
+                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center mt-8">
+
+                            <div className="text-5xl mb-4">
+                                📁
+                            </div>
+
+                            <h2 className="text-xl font-bold text-gray-900">
+                                No category activity yet
+                            </h2>
+
+                            <p className="text-gray-500 mt-2">
+                                Add a transaction to see your category
+                                breakdown.
+                            </p>
+
+                            <a
+                                href="/dashboard"
+                                className="inline-block mt-6 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-blue-700"
+                            >
+                                Add Transaction
+                            </a>
+
+                        </div>
+                    )}
 
                 </main>
 

@@ -4,25 +4,55 @@ function Transactions() {
     const [transactions, setTransactions] = useState([]);
 
     useEffect(() => {
+        loadTransactions();
+
+        window.addEventListener("transactionsUpdated", loadTransactions);
+
+        return () => {
+            window.removeEventListener(
+                "transactionsUpdated",
+                loadTransactions
+            );
+        };
+    }, []);
+
+    function loadTransactions() {
         const saved = localStorage.getItem("transactions");
 
         if (saved) {
             setTransactions(JSON.parse(saved));
+        } else {
+            setTransactions([]);
         }
-    }, []);
+    }
 
     function deleteTransaction(id) {
         const updatedTransactions = transactions.filter(
             (transaction) => transaction.id !== id
         );
 
-        setTransactions(updatedTransactions);
-
         localStorage.setItem(
             "transactions",
             JSON.stringify(updatedTransactions)
         );
+
+        setTransactions(updatedTransactions);
+
+        window.dispatchEvent(new Event("transactionsUpdated"));
     }
+
+    const currency =
+        localStorage.getItem("currency") || "NGN";
+
+    const currencySymbols = {
+        NGN: "₦",
+        USD: "$",
+        GBP: "£",
+        EUR: "€",
+    };
+
+    const currencySymbol =
+        currencySymbols[currency] || "₦";
 
     return (
         <div className="min-h-screen bg-[#F5F7FB] flex">
@@ -61,35 +91,27 @@ function Transactions() {
                     </a>
 
                     <a
-                        href="#"
+                        href="/categories"
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
                     >
                         📁 Categories
                     </a>
 
                     <a
-                        href="#"
+                        href="/reports"
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
                     >
                         📈 Reports
                     </a>
 
                     <a
-                        href="#"
+                        href="/settings"
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
                     >
                         ⚙️ Settings
                     </a>
 
                 </nav>
-
-                <div className="p-4 border-t border-gray-200">
-
-                    <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50">
-                        🚪 Logout
-                    </button>
-
-                </div>
 
             </aside>
 
@@ -122,136 +144,167 @@ function Transactions() {
                 {/* CONTENT */}
                 <main className="max-w-7xl mx-auto px-6 py-10">
 
-                    <div className="mb-8">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
 
-                        <h1 className="text-3xl font-bold text-gray-900">
-                            All Transactions
-                        </h1>
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">
+                                All Transactions
+                            </h1>
 
-                        <p className="text-gray-500 mt-2">
-                            Keep track of every transaction in your business.
-                        </p>
+                            <p className="text-gray-500 mt-2">
+                                You have {transactions.length} transaction
+                                {transactions.length !== 1 ? "s" : ""}.
+                            </p>
+                        </div>
+
+                        <a
+                            href="/dashboard"
+                            className="bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-blue-700 transition text-center"
+                        >
+                            + Add Transaction
+                        </a>
 
                     </div>
 
-                    {/* TRANSACTION CARD */}
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
-
-                        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-900">
-                                    Transaction History
-                                </h2>
-
-                                <p className="text-sm text-gray-500 mt-1">
-                                    {transactions.length} transaction
-                                    {transactions.length !== 1 ? "s" : ""}
-                                </p>
-                            </div>
-
-                            <a
-                                href="/dashboard"
-                                className="bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-blue-700"
-                            >
-                                + Add Transaction
-                            </a>
-
-                        </div>
+                    {/* TRANSACTIONS */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
                         {transactions.length === 0 ? (
 
                             <div className="p-12 text-center">
 
                                 <div className="text-5xl mb-4">
-                                    📋
+                                    💳
                                 </div>
 
-                                <h3 className="text-lg font-semibold text-gray-800">
+                                <h2 className="text-xl font-bold text-gray-900">
                                     No transactions yet
-                                </h3>
+                                </h2>
 
                                 <p className="text-gray-500 mt-2">
-                                    Your transactions will appear here.
+                                    Add your first transaction from the dashboard.
                                 </p>
 
                                 <a
                                     href="/dashboard"
-                                    className="inline-block mt-5 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-blue-700"
+                                    className="inline-block mt-6 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-blue-700"
                                 >
-                                    Add Your First Transaction
+                                    Add Transaction
                                 </a>
 
                             </div>
 
                         ) : (
 
-                            <div>
+                            <div className="overflow-x-auto">
 
-                                {transactions.map((transaction) => (
+                                <table className="w-full">
 
-                                    <div
-                                        key={transaction.id}
-                                        className="p-6 border-b last:border-b-0 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-                                    >
+                                    <thead className="bg-gray-50 border-b border-gray-200">
 
-                                        <div className="flex items-center gap-4">
+                                        <tr>
 
-                                            <div
-                                                className={
-                                                    transaction.type === "in"
-                                                        ? "w-11 h-11 rounded-xl bg-green-100 text-green-600 flex items-center justify-center text-xl"
-                                                        : "w-11 h-11 rounded-xl bg-red-100 text-red-500 flex items-center justify-center text-xl"
-                                                }
+                                            <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">
+                                                Date
+                                            </th>
+
+                                            <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">
+                                                Type
+                                            </th>
+
+                                            <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">
+                                                Category
+                                            </th>
+
+                                            <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">
+                                                Note
+                                            </th>
+
+                                            <th className="text-right px-6 py-4 text-sm font-semibold text-gray-600">
+                                                Amount
+                                            </th>
+
+                                            <th className="text-right px-6 py-4 text-sm font-semibold text-gray-600">
+                                                Action
+                                            </th>
+
+                                        </tr>
+
+                                    </thead>
+
+                                    <tbody>
+
+                                        {transactions.map((transaction) => (
+
+                                            <tr
+                                                key={transaction.id}
+                                                className="border-b border-gray-100 hover:bg-gray-50"
                                             >
-                                                {transaction.type === "in" ? "↑" : "↓"}
-                                            </div>
 
-                                            <div>
-
-                                                <p className="font-semibold text-gray-900">
-                                                    {transaction.category}
-                                                </p>
-
-                                                <p className="text-sm text-gray-500 mt-1">
-                                                    {transaction.note || "No note"}
-                                                </p>
-
-                                                <p className="text-xs text-gray-400 mt-1">
+                                                <td className="px-6 py-4 text-sm text-gray-600">
                                                     {transaction.date}
-                                                </p>
+                                                </td>
 
-                                            </div>
+                                                <td className="px-6 py-4">
 
-                                        </div>
+                                                    <span
+                                                        className={
+                                                            transaction.type === "in"
+                                                                ? "px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700"
+                                                                : "px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700"
+                                                        }
+                                                    >
+                                                        {transaction.type === "in"
+                                                            ? "Money In"
+                                                            : "Money Out"}
+                                                    </span>
 
-                                        <div className="flex items-center gap-6">
+                                                </td>
 
-                                            <p
-                                                className={
-                                                    transaction.type === "in"
-                                                        ? "font-bold text-green-600"
-                                                        : "font-bold text-red-500"
-                                                }
-                                            >
-                                                {transaction.type === "in" ? "+" : "-"}₦
-                                                {transaction.amount.toLocaleString()}
-                                            </p>
+                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                                                    {transaction.category}
+                                                </td>
 
-                                            <button
-                                                onClick={() =>
-                                                    deleteTransaction(transaction.id)
-                                                }
-                                                className="text-sm text-red-500 hover:text-red-700"
-                                            >
-                                                Delete
-                                            </button>
+                                                <td className="px-6 py-4 text-sm text-gray-500">
+                                                    {transaction.note || "-"}
+                                                </td>
 
-                                        </div>
+                                                <td
+                                                    className={
+                                                        transaction.type === "in"
+                                                            ? "px-6 py-4 text-right font-bold text-green-600"
+                                                            : "px-6 py-4 text-right font-bold text-red-500"
+                                                    }
+                                                >
+                                                    {transaction.type === "in"
+                                                        ? "+"
+                                                        : "-"}
+                                                    {currencySymbol}
+                                                    {transaction.amount.toLocaleString()}
+                                                </td>
 
-                                    </div>
+                                                <td className="px-6 py-4 text-right">
 
-                                ))}
+                                                    <button
+                                                        onClick={() =>
+                                                            deleteTransaction(
+                                                                transaction.id
+                                                            )
+                                                        }
+                                                        className="text-red-500 hover:text-red-700 font-medium text-sm"
+                                                    >
+                                                        Delete
+                                                    </button>
+
+                                                </td>
+
+                                            </tr>
+
+                                        ))}
+
+                                    </tbody>
+
+                                </table>
 
                             </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 function Dashboard() {
     // =========================
@@ -14,7 +14,9 @@ function Dashboard() {
     const [category, setCategory] = useState("Sales");
     const [note, setNote] = useState("");
 
-    // Save transactions to localStorage
+    // =========================
+    // SAVE TRANSACTIONS
+    // =========================
     useEffect(() => {
         localStorage.setItem(
             "transactions",
@@ -23,12 +25,39 @@ function Dashboard() {
     }, [transactions]);
 
     // =========================
+    // LOAD TRANSACTIONS WHEN UPDATED
+    // =========================
+    useEffect(() => {
+        function loadTransactions() {
+            const saved = localStorage.getItem("transactions");
+
+            if (saved) {
+                setTransactions(JSON.parse(saved));
+            }
+        }
+
+        window.addEventListener(
+            "transactionsUpdated",
+            loadTransactions
+        );
+
+        return () => {
+            window.removeEventListener(
+                "transactionsUpdated",
+                loadTransactions
+            );
+        };
+    }, []);
+
+    // =========================
     // ADD TRANSACTION
     // =========================
     function addTransaction(e) {
         e.preventDefault();
 
-        if (!amount) return;
+        if (!amount || Number(amount) <= 0) {
+            return;
+        }
 
         const newTransaction = {
             id: Date.now(),
@@ -36,13 +65,19 @@ function Dashboard() {
             type,
             category,
             note,
-            date: new Date().toLocaleDateString(),
+            date: new Date().toISOString().split("T")[0],
         };
 
-        setTransactions([
+        const updatedTransactions = [
             newTransaction,
             ...transactions,
-        ]);
+        ];
+
+        setTransactions(updatedTransactions);
+
+        window.dispatchEvent(
+            new Event("transactionsUpdated")
+        );
 
         setAmount("");
         setNote("");
@@ -52,60 +87,69 @@ function Dashboard() {
     // DELETE TRANSACTION
     // =========================
     function deleteTransaction(id) {
-        setTransactions(
-            transactions.filter(
-                (transaction) => transaction.id !== id
-            )
+        const updatedTransactions = transactions.filter(
+            (transaction) => transaction.id !== id
+        );
+
+        setTransactions(updatedTransactions);
+
+        window.dispatchEvent(
+            new Event("transactionsUpdated")
         );
     }
+
     // =========================
-// EXPORT TRANSACTIONS TO CSV
-// =========================
-function exportCSV() {
-    if (transactions.length === 0) {
-        alert("There are no transactions to export.");
-        return;
+    // EXPORT CSV
+    // =========================
+    function exportCSV() {
+        if (transactions.length === 0) {
+            alert("There are no transactions to export.");
+            return;
+        }
+
+        const headers = [
+            "Date",
+            "Type",
+            "Category",
+            "Amount",
+            "Note",
+        ];
+
+        const rows = transactions.map((transaction) => [
+            transaction.date,
+            transaction.type === "in"
+                ? "Money In"
+                : "Money Out",
+            transaction.category,
+            transaction.amount,
+            transaction.note || "",
+        ]);
+
+        const csvContent = [
+            headers.join(","),
+            ...rows.map((row) =>
+                row
+                    .map((value) =>
+                        `"${String(value).replace(/"/g, '""')}"`
+                    )
+                    .join(",")
+            ),
+        ].join("\n");
+
+        const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;",
+        });
+
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "bookkeeping-transactions.csv";
+
+        link.click();
+
+        URL.revokeObjectURL(url);
     }
-
-    const headers = [
-        "Date",
-        "Type",
-        "Category",
-        "Amount",
-        "Note",
-    ];
-
-    const rows = transactions.map((transaction) => [
-        transaction.date,
-        transaction.type === "in" ? "Money In" : "Money Out",
-        transaction.category,
-        transaction.amount,
-        transaction.note || "",
-    ]);
-
-    const csvContent = [
-        headers.join(","),
-        ...rows.map((row) =>
-            row
-                .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-                .join(",")
-        ),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], {
-        type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "bookkeeping-transactions.csv";
-
-    link.click();
-
-    URL.revokeObjectURL(url);
-}
 
     // =========================
     // FINANCIAL CALCULATIONS
@@ -151,50 +195,65 @@ function exportCSV() {
         currencySymbols[currency] || "₦";
 
     // =========================
-    // CASH FLOW SAMPLE DATA
+    // 30 DAY CASH FLOW
     // =========================
-   // =========================
-// 30 DAY CASH FLOW
-// =========================
-const cashFlowData = Array.from({ length: 30 }).map((_, index) => {
-    const date = new Date();
+    const cashFlowData = Array.from({ length: 30 }).map(
+        (_, index) => {
+            const date = new Date();
 
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() - (29 - index));
+            date.setHours(0, 0, 0, 0);
+            date.setDate(
+                date.getDate() - (29 - index)
+            );
 
-    const dateString = date.toLocaleDateString();
+            const dateString = date
+                .toISOString()
+                .split("T")[0];
 
-    const dayTransactions = transactions.filter(
-        (transaction) => transaction.date === dateString
+            const dayTransactions = transactions.filter(
+                (transaction) =>
+                    transaction.date === dateString
+            );
+
+            const moneyInForDay = dayTransactions
+                .filter(
+                    (transaction) =>
+                        transaction.type === "in"
+                )
+                .reduce(
+                    (total, transaction) =>
+                        total + transaction.amount,
+                    0
+                );
+
+            const moneyOutForDay = dayTransactions
+                .filter(
+                    (transaction) =>
+                        transaction.type === "out"
+                )
+                .reduce(
+                    (total, transaction) =>
+                        total + transaction.amount,
+                    0
+                );
+
+            return {
+                date: dateString,
+                moneyIn: moneyInForDay,
+                moneyOut: moneyOutForDay,
+            };
+        }
     );
 
-    const moneyInForDay = dayTransactions
-        .filter((transaction) => transaction.type === "in")
-        .reduce(
-            (total, transaction) => total + transaction.amount,
-            0
-        );
-
-    const moneyOutForDay = dayTransactions
-        .filter((transaction) => transaction.type === "out")
-        .reduce(
-            (total, transaction) => total + transaction.amount,
-            0
-        );
-
-    return {
-        date: dateString,
-        moneyIn: moneyInForDay,
-        moneyOut: moneyOutForDay,
-    };
-});
-
-const maxCashFlow = Math.max(
-    ...cashFlowData.map((day) =>
-        Math.max(day.moneyIn, day.moneyOut)
-    ),
-    1
-);
+    const maxCashFlow = Math.max(
+        ...cashFlowData.map((day) =>
+            Math.max(
+                day.moneyIn,
+                day.moneyOut
+            )
+        ),
+        1
+    );
 
     return (
         <div className="min-h-screen bg-[#F5F7FB] flex">
@@ -202,88 +261,81 @@ const maxCashFlow = Math.max(
             {/* =========================
                 SIDEBAR
             ========================= */}
+            <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
+
+                <div className="p-6 border-b border-gray-200">
+                    <h1 className="text-2xl font-bold text-blue-600">
+                        Bookkeeping
+                    </h1>
+
+                    <p className="text-xs text-gray-500 mt-1">
+                        Simple financial management
+                    </p>
+                </div>
+
+                <nav className="p-4 flex-1">
+
+                    <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-3">
+                        Menu
+                    </p>
+
+                    <a
+                        href="/dashboard"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold mb-2"
+                    >
+                        <span>📊</span>
+                        Dashboard
+                    </a>
+
+                    <a
+                        href="/transactions"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
+                    >
+                        <span>💳</span>
+                        Transactions
+                    </a>
+
+                    <a
+                        href="/categories"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
+                    >
+                        <span>📁</span>
+                        Categories
+                    </a>
+
+                    <a
+                        href="/reports"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
+                    >
+                        <span>📈</span>
+                        Reports
+                    </a>
+
+                    <a
+                        href="/settings"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
+                    >
+                        <span>⚙️</span>
+                        Settings
+                    </a>
+
+                </nav>
+
+                <div className="p-4 border-t border-gray-200">
+                    <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50">
+                        <span>🚪</span>
+                        Logout
+                    </button>
+                </div>
+
+            </aside>
+
             {/* =========================
-    SIDEBAR
-========================= */}
-<aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
-
-    {/* Logo */}
-    <div className="p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-blue-600">
-            Bookkeeping
-        </h1>
-
-        <p className="text-xs text-gray-500 mt-1">
-            Simple financial management
-        </p>
-    </div>
-
-    {/* Navigation */}
-    <nav className="p-4 flex-1">
-
-        <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-3">
-            Menu
-        </p>
-
-        <a
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold mb-2"
-        >
-            <span>📊</span>
-            Dashboard
-        </a>
-
-        <a
-            href="/transactions"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-        >
-            <span>💳</span>
-            Transactions
-        </a>
-
-        <a
-            href="/categories"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-        >
-            <span>📁</span>
-            Categories
-        </a>
-
-        <a
-            href="/reports"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-        >
-            <span>📈</span>
-            Reports
-        </a>
-
-        <a
-            href="/settings"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
-        >
-            <span>⚙️</span>
-            Settings
-        </a>
-
-    </nav>
-
-    {/* Logout */}
-    <div className="p-4 border-t border-gray-200">
-        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50">
-            <span>🚪</span>
-            Logout
-        </button>
-    </div>
-
-</aside>
-            {/* =========================
-                MAIN AREA
+                MAIN
             ========================= */}
             <div className="flex-1">
 
-                {/* =========================
-                    TOP HEADER
-                ========================= */}
+                {/* HEADER */}
                 <header className="bg-white border-b border-gray-200">
 
                     <div className="px-6 py-5 flex justify-between items-center">
@@ -315,184 +367,84 @@ const maxCashFlow = Math.max(
                             </div>
 
                         </div>
+
                     </div>
+
                 </header>
 
-                {/* =========================
-                    CONTENT
-                ========================= */}
+                {/* CONTENT */}
                 <main className="max-w-7xl mx-auto px-6 py-10">
 
                     {/* PAGE TITLE */}
-<div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-    <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-            Dashboard
-        </h1>
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">
+                                Dashboard
+                            </h1>
 
-        <p className="text-gray-500 mt-2">
-            Keep track of your money in and money out.
-        </p>
-    </div>
+                            <p className="text-gray-500 mt-2">
+                                Keep track of your money in and money out.
+                            </p>
+                        </div>
 
-    <button
-        onClick={exportCSV}
-        className="bg-green-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-green-700 transition"
-    >
-        ↓ Export CSV
-    </button>
+                        <button
+                            onClick={exportCSV}
+                            className="bg-green-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-green-700 transition"
+                        >
+                            ↓ Export CSV
+                        </button>
 
-</div>
+                    </div>
 
-                    {/* =========================
-                        SUMMARY CARDS
-                    ========================= */}
+                    {/* SUMMARY CARDS */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                         {/* BALANCE */}
                         <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
 
-                            <div className="flex justify-between items-start">
+                            <p className="text-sm text-gray-500">
+                                Current Balance
+                            </p>
 
-                                <div>
-                                    <p className="text-sm text-gray-500">
-                                        Current Balance
-                                    </p>
+                            <h3 className="text-3xl font-bold text-gray-900 mt-3">
+                                {currencySymbol}
+                                {balance.toLocaleString()}
+                            </h3>
 
-                                    <h3 className="text-3xl font-bold text-gray-900 mt-3">
-                                        {currencySymbol}
-                                        {balance.toLocaleString()}
-                                    </h3>
-                                </div>
-
-                                <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                                    {currencySymbol}
-                                </div>
-
-                            </div>
                         </div>
 
                         {/* MONEY IN */}
                         <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
 
-                            <div className="flex justify-between items-start">
+                            <p className="text-sm text-gray-500">
+                                Money In
+                            </p>
 
-                                <div>
-                                    <p className="text-sm text-gray-500">
-                                        Money In
-                                    </p>
+                            <h3 className="text-3xl font-bold text-green-600 mt-3">
+                                {currencySymbol}
+                                {moneyIn.toLocaleString()}
+                            </h3>
 
-                                    <h3 className="text-3xl font-bold text-green-600 mt-3">
-                                        {currencySymbol}
-                                        {moneyIn.toLocaleString()}
-                                    </h3>
-                                </div>
-
-                                <div className="w-11 h-11 rounded-xl bg-green-100 text-green-600 flex items-center justify-center text-xl">
-                                    ↑
-                                </div>
-
-                            </div>
                         </div>
 
                         {/* MONEY OUT */}
                         <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
 
-                            <div className="flex justify-between items-start">
+                            <p className="text-sm text-gray-500">
+                                Money Out
+                            </p>
 
-                                <div>
-                                    <p className="text-sm text-gray-500">
-                                        Money Out
-                                    </p>
+                            <h3 className="text-3xl font-bold text-red-500 mt-3">
+                                {currencySymbol}
+                                {moneyOut.toLocaleString()}
+                            </h3>
 
-                                    <h3 className="text-3xl font-bold text-red-500 mt-3">
-                                        {currencySymbol}
-                                        {moneyOut.toLocaleString()}
-                                    </h3>
-                                </div>
-
-                                <div className="w-11 h-11 rounded-xl bg-red-100 text-red-500 flex items-center justify-center text-xl">
-                                    ↓
-                                </div>
-
-                            </div>
                         </div>
 
                     </div>
 
-                    {/* =========================
-    30 DAY CASH FLOW
-========================= */}
-<div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-8">
-
-    <div className="p-6 border-b border-gray-200">
-
-        <h2 className="text-xl font-bold text-gray-900">
-            30 Day Cash Flow
-        </h2>
-
-        <p className="text-sm text-gray-500 mt-1">
-            Your money in and money out for the last 30 days.
-        </p>
-
-    </div>
-
-    <div className="p-6">
-
-        <div className="flex items-end gap-1 h-64">
-
-            {cashFlowData.map((day, index) => (
-
-                <div
-                    key={index}
-                    className="flex-1 flex items-end gap-1 h-full"
-                    title={`${day.date} - In: ${currencySymbol}${day.moneyIn.toLocaleString()} | Out: ${currencySymbol}${day.moneyOut.toLocaleString()}`}
-                >
-
-                    {/* Money In */}
-                    <div
-                        className="bg-green-400 rounded-t-lg w-1/2"
-                        style={{
-                            height: `${(day.moneyIn / maxCashFlow) * 100}%`,
-                        }}
-                    />
-
-                    {/* Money Out */}
-                    <div
-                        className="bg-red-400 rounded-t-lg w-1/2"
-                        style={{
-                            height: `${(day.moneyOut / maxCashFlow) * 100}%`,
-                        }}
-                    />
-
-                </div>
-
-            ))}
-
-        </div>
-
-        {/* LEGEND */}
-        <div className="flex justify-center gap-6 mt-6 text-sm">
-
-            <div className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-green-400 rounded-full"></span>
-                Money In
-            </div>
-
-            <div className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-red-400 rounded-full"></span>
-                Money Out
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-
+                    {/* ADD TRANSACTION */}
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-8">
 
                         <div className="p-6 border-b border-gray-200">
@@ -521,7 +473,7 @@ const maxCashFlow = Math.max(
 
                                 <input
                                     type="number"
-                                    placeholder="₦0.00"
+                                    placeholder={`${currencySymbol}0.00`}
                                     value={amount}
                                     onChange={(e) =>
                                         setAmount(e.target.value)
@@ -531,7 +483,7 @@ const maxCashFlow = Math.max(
 
                             </div>
 
-
+                            {/* TYPE */}
                             <div>
 
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -600,7 +552,7 @@ const maxCashFlow = Math.max(
 
                             </div>
 
-                            {/* BUTTON */}
+                            {/* SAVE */}
                             <div className="md:col-span-2">
 
                                 <button
@@ -616,9 +568,69 @@ const maxCashFlow = Math.max(
 
                     </div>
 
-                    {/* =========================
-                        RECENT TRANSACTIONS
-                    ========================= */}
+                    {/* 30 DAY CASH FLOW */}
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-8">
+
+                        <div className="p-6 border-b border-gray-200">
+
+                            <h2 className="text-xl font-bold text-gray-900">
+                                30 Day Cash Flow
+                            </h2>
+
+                            <p className="text-sm text-gray-500 mt-1">
+                                Your money in and money out for the last 30 days.
+                            </p>
+
+                        </div>
+
+                        <div className="p-6">
+
+                            <div className="flex items-end gap-1 h-64">
+
+                                {cashFlowData.map((day, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex-1 flex items-end gap-1 h-full"
+                                        title={`${day.date} - In: ${currencySymbol}${day.moneyIn.toLocaleString()} | Out: ${currencySymbol}${day.moneyOut.toLocaleString()}`}
+                                    >
+                                        <div
+                                            className="bg-green-400 rounded-t-lg w-1/2"
+                                            style={{
+                                                height: `${(day.moneyIn / maxCashFlow) * 100}%`,
+                                            }}
+                                        />
+
+                                        <div
+                                            className="bg-red-400 rounded-t-lg w-1/2"
+                                            style={{
+                                                height: `${(day.moneyOut / maxCashFlow) * 100}%`,
+                                            }}
+                                        />
+                                    </div>
+                                ))}
+
+                            </div>
+
+                            {/* LEGEND */}
+                            <div className="flex justify-center gap-6 mt-6 text-sm">
+
+                                <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 bg-green-400 rounded-full"></span>
+                                    Money In
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <span className="w-3 h-3 bg-red-400 rounded-full"></span>
+                                    Money Out
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {/* RECENT TRANSACTIONS */}
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-8">
 
                         <div className="p-6 border-b border-gray-200">
@@ -661,7 +673,6 @@ const maxCashFlow = Math.max(
                                 >
 
                                     <div>
-
                                         <p className="font-semibold text-gray-900">
                                             {transaction.category}
                                         </p>
@@ -670,7 +681,6 @@ const maxCashFlow = Math.max(
                                             {transaction.note || "No note"}{" "}
                                             • {transaction.date}
                                         </p>
-
                                     </div>
 
                                     <div className="flex items-center gap-5">
@@ -711,7 +721,9 @@ const maxCashFlow = Math.max(
                     </div>
 
                 </main>
+
             </div>
+
         </div>
     );
 }
