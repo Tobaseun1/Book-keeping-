@@ -208,6 +208,8 @@ function Home() {
 
             {/* FOOTER */}
             <Footer />
+        </>
+    );
+}
 
-
-            export default Home;
+export default Home;
