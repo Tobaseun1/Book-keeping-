@@ -105,20 +105,48 @@ function Dashboard() {
     // =========================
     // CASH FLOW SAMPLE DATA
     // =========================
-    const cashFlowData = [
-        30,
-        25,
-        20,
-        35,
-        45,
-        30,
-        55,
-        40,
-        65,
-        50,
-        70,
-        45,
-    ];
+   // =========================
+// 30 DAY CASH FLOW
+// =========================
+const cashFlowData = Array.from({ length: 30 }).map((_, index) => {
+    const date = new Date();
+
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (29 - index));
+
+    const dateString = date.toLocaleDateString();
+
+    const dayTransactions = transactions.filter(
+        (transaction) => transaction.date === dateString
+    );
+
+    const moneyInForDay = dayTransactions
+        .filter((transaction) => transaction.type === "in")
+        .reduce(
+            (total, transaction) => total + transaction.amount,
+            0
+        );
+
+    const moneyOutForDay = dayTransactions
+        .filter((transaction) => transaction.type === "out")
+        .reduce(
+            (total, transaction) => total + transaction.amount,
+            0
+        );
+
+    return {
+        date: dateString,
+        moneyIn: moneyInForDay,
+        moneyOut: moneyOutForDay,
+    };
+});
+
+const maxCashFlow = Math.max(
+    ...cashFlowData.map((day) =>
+        Math.max(day.moneyIn, day.moneyOut)
+    ),
+    1
+);
 
     return (
         <div className="min-h-screen bg-[#F5F7FB] flex">
@@ -337,72 +365,74 @@ function Dashboard() {
                     </div>
 
                     {/* =========================
-                        CASH FLOW
-                    ========================= */}
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-8">
+    30 DAY CASH FLOW
+========================= */}
+<div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-8">
 
-                        <div className="p-6 border-b border-gray-200">
+    <div className="p-6 border-b border-gray-200">
 
-                            <h2 className="text-xl font-bold text-gray-900">
-                                Cash Flow
-                            </h2>
+        <h2 className="text-xl font-bold text-gray-900">
+            30 Day Cash Flow
+        </h2>
 
-                            <p className="text-sm text-gray-500 mt-1">
-                                Your money in and money out.
-                            </p>
+        <p className="text-sm text-gray-500 mt-1">
+            Your money in and money out for the last 30 days.
+        </p>
 
-                        </div>
+    </div>
 
-                        <div className="p-6">
+    <div className="p-6">
 
-                            <div className="flex items-end gap-3 h-64">
+        <div className="flex items-end gap-1 h-64">
 
-                                {cashFlowData.map(
-                                    (height, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex-1 flex items-end gap-1 h-full"
-                                        >
+            {cashFlowData.map((day, index) => (
 
-                                            {/* Money In */}
-                                            <div
-                                                className="bg-green-400 rounded-t-lg w-1/2"
-                                                style={{
-                                                    height: `${height}%`,
-                                                }}
-                                            />
+                <div
+                    key={index}
+                    className="flex-1 flex items-end gap-1 h-full"
+                    title={`${day.date} - In: ${currencySymbol}${day.moneyIn.toLocaleString()} | Out: ${currencySymbol}${day.moneyOut.toLocaleString()}`}
+                >
 
-                                            {/* Money Out */}
-                                            <div
-                                                className="bg-red-400 rounded-t-lg w-1/2"
-                                                style={{
-                                                    height: `${height * 0.6}%`,
-                                                }}
-                                            />
+                    {/* Money In */}
+                    <div
+                        className="bg-green-400 rounded-t-lg w-1/2"
+                        style={{
+                            height: `${(day.moneyIn / maxCashFlow) * 100}%`,
+                        }}
+                    />
 
-                                        </div>
-                                    )
-                                )}
+                    {/* Money Out */}
+                    <div
+                        className="bg-red-400 rounded-t-lg w-1/2"
+                        style={{
+                            height: `${(day.moneyOut / maxCashFlow) * 100}%`,
+                        }}
+                    />
 
-                            </div>
+                </div>
 
-                            {/* LEGEND */}
-                            <div className="flex justify-center gap-6 mt-6 text-sm">
+            ))}
 
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 bg-green-400 rounded-full"></span>
-                                    Money In
-                                </div>
+        </div>
 
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 bg-red-400 rounded-full"></span>
-                                    Money Out
-                                </div>
+        {/* LEGEND */}
+        <div className="flex justify-center gap-6 mt-6 text-sm">
 
-                            </div>
+            <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-green-400 rounded-full"></span>
+                Money In
+            </div>
 
-                        </div>
-                    </div>
+            <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-red-400 rounded-full"></span>
+                Money Out
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
 
 
 
