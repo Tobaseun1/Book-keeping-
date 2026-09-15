@@ -22,9 +22,73 @@ function Reports() {
     const startingBalance =
         Number(localStorage.getItem("startingBalance")) || 0;
 
-    const balance = startingBalance + moneyIn - moneyOut;
+    const balance =
+        startingBalance + moneyIn - moneyOut;
 
     const totalTransactions = transactions.length;
+
+    const currency =
+        localStorage.getItem("currency") || "NGN";
+
+    const currencySymbols = {
+        NGN: "₦",
+        USD: "$",
+        GBP: "£",
+        EUR: "€",
+    };
+
+    const currencySymbol =
+        currencySymbols[currency] || "₦";
+
+    function exportCSV() {
+        if (transactions.length === 0) {
+            alert("There are no transactions to export.");
+            return;
+        }
+
+        const headers = [
+            "Date",
+            "Type",
+            "Category",
+            "Amount",
+            "Note",
+        ];
+
+        const rows = transactions.map((transaction) => [
+            transaction.date,
+            transaction.type === "in"
+                ? "Money In"
+                : "Money Out",
+            transaction.category,
+            transaction.amount,
+            transaction.note || "",
+        ]);
+
+        const csvContent = [
+            headers.join(","),
+            ...rows.map((row) =>
+                row
+                    .map((value) =>
+                        `"${String(value).replace(/"/g, '""')}"`
+                    )
+                    .join(",")
+            ),
+        ].join("\n");
+
+        const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;",
+        });
+
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "bookkeeping-report.csv";
+
+        link.click();
+
+        URL.revokeObjectURL(url);
+    }
 
     return (
         <div className="min-h-screen bg-[#F5F7FB] flex">
@@ -77,7 +141,7 @@ function Reports() {
                     </a>
 
                     <a
-                        href="#"
+                        href="/settings"
                         className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
                     >
                         ⚙️ Settings
@@ -124,21 +188,46 @@ function Reports() {
                 {/* CONTENT */}
                 <main className="max-w-7xl mx-auto px-6 py-10">
 
-                    <div className="mb-8">
+                    {/* TITLE */}
+                    <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-                        <h1 className="text-3xl font-bold text-gray-900">
-                            Financial Reports
-                        </h1>
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">
+                                Financial Reports
+                            </h1>
 
-                        <p className="text-gray-500 mt-2">
-                            A simple overview of your business finances.
-                        </p>
+                            <p className="text-gray-500 mt-2">
+                                A simple overview of your business finances.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={exportCSV}
+                            className="bg-green-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-green-700 transition"
+                        >
+                            ↓ Export CSV
+                        </button>
 
                     </div>
 
                     {/* SUMMARY */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 
+                        {/* STARTING BALANCE */}
+                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+
+                            <p className="text-sm text-gray-500">
+                                Starting Balance
+                            </p>
+
+                            <h2 className="text-3xl font-bold text-gray-900 mt-3">
+                                {currencySymbol}
+                                {startingBalance.toLocaleString()}
+                            </h2>
+
+                        </div>
+
+                        {/* TOTAL BALANCE */}
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
 
                             <p className="text-sm text-gray-500">
@@ -146,11 +235,13 @@ function Reports() {
                             </p>
 
                             <h2 className="text-3xl font-bold text-gray-900 mt-3">
-                                ₦{balance.toLocaleString()}
+                                {currencySymbol}
+                                {balance.toLocaleString()}
                             </h2>
 
                         </div>
 
+                        {/* MONEY IN */}
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
 
                             <p className="text-sm text-gray-500">
@@ -158,11 +249,13 @@ function Reports() {
                             </p>
 
                             <h2 className="text-3xl font-bold text-green-600 mt-3">
-                                ₦{moneyIn.toLocaleString()}
+                                {currencySymbol}
+                                {moneyIn.toLocaleString()}
                             </h2>
 
                         </div>
 
+                        {/* MONEY OUT */}
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
 
                             <p className="text-sm text-gray-500">
@@ -170,7 +263,8 @@ function Reports() {
                             </p>
 
                             <h2 className="text-3xl font-bold text-red-500 mt-3">
-                                ₦{moneyOut.toLocaleString()}
+                                {currencySymbol}
+                                {moneyOut.toLocaleString()}
                             </h2>
 
                         </div>
@@ -188,6 +282,7 @@ function Reports() {
                             Compare money coming into your business with money going out.
                         </p>
 
+                        {/* MONEY IN */}
                         <div className="mt-8">
 
                             <div className="flex justify-between mb-2">
@@ -197,7 +292,8 @@ function Reports() {
                                 </span>
 
                                 <span className="text-sm font-bold text-green-600">
-                                    ₦{moneyIn.toLocaleString()}
+                                    {currencySymbol}
+                                    {moneyIn.toLocaleString()}
                                 </span>
 
                             </div>
@@ -218,6 +314,7 @@ function Reports() {
 
                         </div>
 
+                        {/* MONEY OUT */}
                         <div className="mt-6">
 
                             <div className="flex justify-between mb-2">
@@ -227,7 +324,8 @@ function Reports() {
                                 </span>
 
                                 <span className="text-sm font-bold text-red-500">
-                                    ₦{moneyOut.toLocaleString()}
+                                    {currencySymbol}
+                                    {moneyOut.toLocaleString()}
                                 </span>
 
                             </div>
@@ -253,6 +351,7 @@ function Reports() {
                     {/* REPORT DETAILS */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
 
+                        {/* TRANSACTION SUMMARY */}
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
 
                             <h2 className="text-xl font-bold text-gray-900">
@@ -282,7 +381,8 @@ function Reports() {
                                     <span className="font-bold text-green-600">
                                         {
                                             transactions.filter(
-                                                (transaction) => transaction.type === "in"
+                                                (transaction) =>
+                                                    transaction.type === "in"
                                             ).length
                                         }
                                     </span>
@@ -298,7 +398,8 @@ function Reports() {
                                     <span className="font-bold text-red-500">
                                         {
                                             transactions.filter(
-                                                (transaction) => transaction.type === "out"
+                                                (transaction) =>
+                                                    transaction.type === "out"
                                             ).length
                                         }
                                     </span>
@@ -309,6 +410,7 @@ function Reports() {
 
                         </div>
 
+                        {/* NET POSITION */}
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
 
                             <h2 className="text-xl font-bold text-gray-900">
@@ -316,7 +418,7 @@ function Reports() {
                             </h2>
 
                             <p className="text-sm text-gray-500 mt-1">
-                                Money in minus money out.
+                                Starting balance + money in - money out.
                             </p>
 
                             <h3
@@ -326,13 +428,16 @@ function Reports() {
                                         : "text-4xl font-bold text-red-500 mt-8"
                                 }
                             >
-                                ₦{balance.toLocaleString()}
+                                {currencySymbol}
+                                {balance.toLocaleString()}
                             </h3>
 
                             <p className="text-sm text-gray-500 mt-3">
+
                                 {balance >= 0
-                                    ? "Your recorded income is currently higher than your expenses."
-                                    : "Your recorded expenses are currently higher than your income."}
+                                    ? "Your current recorded balance is positive."
+                                    : "Your recorded expenses are currently higher than your available balance."}
+
                             </p>
 
                         </div>
