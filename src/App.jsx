@@ -6,27 +6,17 @@ import Categories from "./Pages/Categories";
 import Reports from "./Pages/Reports";
 import Settings from "./Pages/Settings";
 
-
 function App() {
   return (
     <BrowserRouter>
-
       <Routes>
-
         <Route path="/" element={<Home />} />
-
         <Route path="/dashboard" element={<Dashboard />} />
-
         <Route path="/transactions" element={<Transactions />} />
-
         <Route path="/categories" element={<Categories />} />
-
         <Route path="/reports" element={<Reports />} />
-
         <Route path="/settings" element={<Settings />} />
-
       </Routes>
-
     </BrowserRouter>
   );
 }
