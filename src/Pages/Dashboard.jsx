@@ -58,6 +58,54 @@ function Dashboard() {
             )
         );
     }
+    // =========================
+// EXPORT TRANSACTIONS TO CSV
+// =========================
+function exportCSV() {
+    if (transactions.length === 0) {
+        alert("There are no transactions to export.");
+        return;
+    }
+
+    const headers = [
+        "Date",
+        "Type",
+        "Category",
+        "Amount",
+        "Note",
+    ];
+
+    const rows = transactions.map((transaction) => [
+        transaction.date,
+        transaction.type === "in" ? "Money In" : "Money Out",
+        transaction.category,
+        transaction.amount,
+        transaction.note || "",
+    ]);
+
+    const csvContent = [
+        headers.join(","),
+        ...rows.map((row) =>
+            row
+                .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+                .join(",")
+        ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], {
+        type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "bookkeeping-transactions.csv";
+
+    link.click();
+
+    URL.revokeObjectURL(url);
+}
 
     // =========================
     // FINANCIAL CALCULATIONS
@@ -276,17 +324,26 @@ const maxCashFlow = Math.max(
                 <main className="max-w-7xl mx-auto px-6 py-10">
 
                     {/* PAGE TITLE */}
-                    <div className="mb-8">
+<div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-                        <h1 className="text-3xl font-bold text-gray-900">
-                            Dashboard
-                        </h1>
+    <div>
+        <h1 className="text-3xl font-bold text-gray-900">
+            Dashboard
+        </h1>
 
-                        <p className="text-gray-500 mt-2">
-                            Keep track of your money in and money out.
-                        </p>
+        <p className="text-gray-500 mt-2">
+            Keep track of your money in and money out.
+        </p>
+    </div>
 
-                    </div>
+    <button
+        onClick={exportCSV}
+        className="bg-green-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-green-700 transition"
+    >
+        ↓ Export CSV
+    </button>
+
+</div>
 
                     {/* =========================
                         SUMMARY CARDS
