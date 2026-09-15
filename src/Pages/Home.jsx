@@ -1,7 +1,7 @@
 import Navbar from "../Components/Navbar";
 import Hero from "../Components/Hero";
-import Features from "../Components/Features";
-import HowItWorks from "../Components/HowItWorks";
+import Features from "./Features";
+import HowItWorks from "./HowItWorks";
 import CTA from "../Components/CTA";
 import Footer from "../Components/Footer";
 
