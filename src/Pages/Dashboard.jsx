@@ -126,76 +126,80 @@ function Dashboard() {
             {/* =========================
                 SIDEBAR
             ========================= */}
-            <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
+            {/* =========================
+    SIDEBAR
+========================= */}
+<aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
 
-                {/* Logo */}
-                <div className="p-6 border-b border-gray-200">
-                    <h1 className="text-2xl font-bold text-blue-600">
-                        Bookkeeping
-                    </h1>
+    {/* Logo */}
+    <div className="p-6 border-b border-gray-200">
+        <h1 className="text-2xl font-bold text-blue-600">
+            Bookkeeping
+        </h1>
 
-                    <p className="text-xs text-gray-500 mt-1">
-                        Simple financial management
-                    </p>
-                </div>
+        <p className="text-xs text-gray-500 mt-1">
+            Simple financial management
+        </p>
+    </div>
 
-                {/* Navigation */}
-                <nav className="p-4 flex-1">
+    {/* Navigation */}
+    <nav className="p-4 flex-1">
 
-                    <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-3">
-                        Menu
-                    </p>
+        <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-3">
+            Menu
+        </p>
 
-                    <a
-                        href="/dashboard"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold mb-2"
-                    >
-                        <span>📊</span>
-                        Dashboard
-                    </a>
+        <a
+            href="/dashboard"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold mb-2"
+        >
+            <span>📊</span>
+            Dashboard
+        </a>
 
-                    <a
-                        href="#"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        <span>💳</span>
-                        Transactions
-                    </a>
+        <a
+            href="/transactions"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
+        >
+            <span>💳</span>
+            Transactions
+        </a>
 
-                    <a
-                        href="#"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        <span>📁</span>
-                        Categories
-                    </a>
+        <a
+            href="/categories"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
+        >
+            <span>📁</span>
+            Categories
+        </a>
 
-                    <a
-                        href="#"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        <span>📈</span>
-                        Reports
-                    </a>
+        <a
+            href="/reports"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
+        >
+            <span>📈</span>
+            Reports
+        </a>
 
-                    <a
-                        href="#"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
-                    >
-                        <span>⚙️</span>
-                        Settings
-                    </a>
-                </nav>
+        <a
+            href="/settings"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
+        >
+            <span>⚙️</span>
+            Settings
+        </a>
 
-                {/* Logout */}
-                <div className="p-4 border-t border-gray-200">
-                    <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50">
-                        <span>🚪</span>
-                        Logout
-                    </button>
-                </div>
-            </aside>
+    </nav>
 
+    {/* Logout */}
+    <div className="p-4 border-t border-gray-200">
+        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50">
+            <span>🚪</span>
+            Logout
+        </button>
+    </div>
+
+</aside>
             {/* =========================
                 MAIN AREA
             ========================= */}
