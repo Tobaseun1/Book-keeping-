@@ -8,8 +8,11 @@ import Footer from "../Components/Footer";
 function Home() {
     return (
         <>
-            <Navbar />
-            <Hero />
+            <div className="relative">
+                <Navbar />
+                <Hero />
+            </div>
+
             <Features />
             <HowItWorks />
             <CTA />

@@ -1,58 +1,56 @@
-import { Link } from "react-router-dom";
-
 function Navbar() {
     return (
-        <nav className="bg-white border-b">
-            <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <nav className="absolute top-3 left-1/2 -translate-x-1/2 w-[92%] max-w-6xl z-20">
+            <div className="bg-white rounded-2xl shadow-lg px-6 py-4 flex items-center justify-between">
 
-
-                <Link to="/" className="flex items-center">
+                {/* Logo */}
+                <a href="/" className="flex items-center">
                     <img
-                        src="/Basir.png"
-                        alt="BashirSeun"
-                        className="h-20 w-auto object-contain"
+                        src="/logo.png"
+                        alt="Bookkeeping"
+                        className="h-20 w-auto"
                     />
-                </Link>
+                </a>
 
-
+                {/* Desktop Links */}
                 <div className="hidden md:flex items-center gap-8">
                     <a
-                        href="/#features"
-                        className="text-gray-700 hover:text-blue-600"
+                        href="#features"
+                        className="text-gray-600 hover:text-blue-600 transition"
                     >
                         Features
                     </a>
 
                     <a
-                        href="/#how-it-works"
-                        className="text-gray-700 hover:text-blue-600"
+                        href="#how-it-works"
+                        className="text-gray-600 hover:text-blue-600 transition"
                     >
                         How It Works
                     </a>
 
                     <a
-                        href="/#contact"
-                        className="text-gray-700 hover:text-blue-600"
+                        href="#contact"
+                        className="text-gray-600 hover:text-blue-600 transition"
                     >
                         Contact
                     </a>
                 </div>
 
                 {/* Buttons */}
-                <div className="flex items-center gap-6">
-                    <Link
-                        to="/dashboard"
-                        className="text-gray-700 hover:text-blue-600"
+                <div className="flex items-center gap-3">
+                    <a
+                        href="/dashboard"
+                        className="hidden sm:block text-gray-700 hover:text-blue-600 transition"
                     >
                         Login
-                    </Link>
+                    </a>
 
-                    <Link
-                        to="/dashboard"
-                        className="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700"
+                    <a
+                        href="/dashboard"
+                        className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition"
                     >
                         Get Started
-                    </Link>
+                    </a>
                 </div>
 
             </div>
