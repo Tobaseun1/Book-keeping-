@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+
 function Navbar() {
     return (
         <nav className="bg-white border-b">
@@ -16,33 +17,33 @@ function Navbar() {
                 </Link>
 
                 <div className="hidden md:flex items-center gap-8">
-                    <a href="/#features" className="text-gray-700 hover:text-blue-600">
+                    <Link to="/features" className="text-gray-700 hover:text-blue-600">
                         Features
-                    </a>
+                    </Link>
 
-                    <a href="/#how-it-works" className="text-gray-700 hover:text-blue-600">
+                    <Link to="/how-it-works" className="text-gray-700 hover:text-blue-600">
                         How It Works
-                    </a>
+                    </Link>
 
-                    <a href="/#contact" className="text-gray-700 hover:text-blue-600">
+                    <Link to="/contact" className="text-gray-700 hover:text-blue-600">
                         Contact
-                    </a>
+                    </Link>
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <a
-                        href="/dashboard"
+                    <Link
+                        to="/login"
                         className="text-gray-700 hover:text-blue-600"
                     >
                         Login
-                    </a>
+                    </Link>
 
-                    <a
-                        href="/dashboard"
+                    <Link
+                        to="/login"
                         className="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700"
                     >
                         Get Started
-                    </a>
+                    </Link>
                 </div>
 
             </div>
