@@ -1,9 +1,21 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 function Dashboard() {
+    const navigate = useNavigate();
+
+    // =========================
+    // LOGGED-IN USER
+    // =========================
+
+    const user = JSON.parse(
+        localStorage.getItem("bookkeepingUser") || "null"
+    );
+
     // =========================
     // TRANSACTIONS
     // =========================
+
     const [transactions, setTransactions] = useState(() => {
         const saved = localStorage.getItem("transactions");
         return saved ? JSON.parse(saved) : [];
@@ -11,172 +23,36 @@ function Dashboard() {
 
     const [amount, setAmount] = useState("");
     const [type, setType] = useState("in");
-    const [category, setCategory] = useState("Sales");
+    const [category, setCategory] = useState("");
     const [note, setNote] = useState("");
 
     // =========================
-    // SAVE TRANSACTIONS
+    // SAVINGS TARGET
     // =========================
-    useEffect(() => {
-        localStorage.setItem(
-            "transactions",
-            JSON.stringify(transactions)
-        );
-    }, [transactions]);
 
-    // =========================
-    // LOAD TRANSACTIONS WHEN UPDATED
-    // =========================
-    useEffect(() => {
-        function loadTransactions() {
-            const saved = localStorage.getItem("transactions");
+    const [savingsTarget, setSavingsTarget] = useState(() => {
+        const saved = localStorage.getItem("savingsTarget");
 
-            if (saved) {
-                setTransactions(JSON.parse(saved));
-            }
-        }
+        return saved
+            ? JSON.parse(saved)
+            : {
+                name: "",
+                target: 0,
+                saved: 0,
+                date: "",
+                history: [],
+            };
+    });
 
-        window.addEventListener(
-            "transactionsUpdated",
-            loadTransactions
-        );
-
-        return () => {
-            window.removeEventListener(
-                "transactionsUpdated",
-                loadTransactions
-            );
-        };
-    }, []);
-
-    // =========================
-    // ADD TRANSACTION
-    // =========================
-    function addTransaction(e) {
-        e.preventDefault();
-
-        if (!amount || Number(amount) <= 0) {
-            return;
-        }
-
-        const newTransaction = {
-            id: Date.now(),
-            amount: Number(amount),
-            type,
-            category,
-            note,
-            date: new Date().toISOString().split("T")[0],
-        };
-
-        const updatedTransactions = [
-            newTransaction,
-            ...transactions,
-        ];
-
-        setTransactions(updatedTransactions);
-
-        window.dispatchEvent(
-            new Event("transactionsUpdated")
-        );
-
-        setAmount("");
-        setNote("");
-    }
-
-    // =========================
-    // DELETE TRANSACTION
-    // =========================
-    function deleteTransaction(id) {
-        const updatedTransactions = transactions.filter(
-            (transaction) => transaction.id !== id
-        );
-
-        setTransactions(updatedTransactions);
-
-        window.dispatchEvent(
-            new Event("transactionsUpdated")
-        );
-    }
-
-    // =========================
-    // EXPORT CSV
-    // =========================
-    function exportCSV() {
-        if (transactions.length === 0) {
-            alert("There are no transactions to export.");
-            return;
-        }
-
-        const headers = [
-            "Date",
-            "Type",
-            "Category",
-            "Amount",
-            "Note",
-        ];
-
-        const rows = transactions.map((transaction) => [
-            transaction.date,
-            transaction.type === "in"
-                ? "Money In"
-                : "Money Out",
-            transaction.category,
-            transaction.amount,
-            transaction.note || "",
-        ]);
-
-        const csvContent = [
-            headers.join(","),
-            ...rows.map((row) =>
-                row
-                    .map((value) =>
-                        `"${String(value).replace(/"/g, '""')}"`
-                    )
-                    .join(",")
-            ),
-        ].join("\n");
-
-        const blob = new Blob([csvContent], {
-            type: "text/csv;charset=utf-8;",
-        });
-
-        const url = URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "bookkeeping-transactions.csv";
-
-        link.click();
-
-        URL.revokeObjectURL(url);
-    }
-
-    // =========================
-    // FINANCIAL CALCULATIONS
-    // =========================
-    const moneyIn = transactions
-        .filter((transaction) => transaction.type === "in")
-        .reduce(
-            (total, transaction) => total + transaction.amount,
-            0
-        );
-
-    const moneyOut = transactions
-        .filter((transaction) => transaction.type === "out")
-        .reduce(
-            (total, transaction) => total + transaction.amount,
-            0
-        );
-
-    const startingBalance =
-        Number(localStorage.getItem("startingBalance")) || 0;
-
-    const balance =
-        startingBalance + moneyIn - moneyOut;
+    const [targetName, setTargetName] = useState("");
+    const [targetAmount, setTargetAmount] = useState("");
+    const [targetDate, setTargetDate] = useState("");
+    const [savingsAmount, setSavingsAmount] = useState("");
 
     // =========================
     // BUSINESS SETTINGS
     // =========================
+
     const businessName =
         localStorage.getItem("businessName") ||
         "My Business";
@@ -195,534 +71,1229 @@ function Dashboard() {
         currencySymbols[currency] || "₦";
 
     // =========================
-    // 30 DAY CASH FLOW
+    // SAVE TRANSACTIONS
     // =========================
-    const cashFlowData = Array.from({ length: 30 }).map(
-        (_, index) => {
-            const date = new Date();
 
-            date.setHours(0, 0, 0, 0);
-            date.setDate(
-                date.getDate() - (29 - index)
-            );
+    useEffect(() => {
+        localStorage.setItem(
+            "transactions",
+            JSON.stringify(transactions)
+        );
+    }, [transactions]);
 
-            const dateString = date
-                .toISOString()
-                .split("T")[0];
+    // =========================
+    // SAVE SAVINGS TARGET
+    // =========================
 
-            const dayTransactions = transactions.filter(
-                (transaction) =>
-                    transaction.date === dateString
-            );
+    useEffect(() => {
+        localStorage.setItem(
+            "savingsTarget",
+            JSON.stringify(savingsTarget)
+        );
+    }, [savingsTarget]);
 
-            const moneyInForDay = dayTransactions
-                .filter(
-                    (transaction) =>
-                        transaction.type === "in"
-                )
-                .reduce(
-                    (total, transaction) =>
-                        total + transaction.amount,
-                    0
-                );
+    // =========================
+    // CALCULATIONS
+    // =========================
 
-            const moneyOutForDay = dayTransactions
-                .filter(
-                    (transaction) =>
-                        transaction.type === "out"
-                )
-                .reduce(
-                    (total, transaction) =>
-                        total + transaction.amount,
-                    0
-                );
+    const moneyIn = transactions
+        .filter((item) => item.type === "in")
+        .reduce(
+            (total, item) =>
+                total + Number(item.amount),
+            0
+        );
 
-            return {
-                date: dateString,
-                moneyIn: moneyInForDay,
-                moneyOut: moneyOutForDay,
-            };
-        }
-    );
+    const moneyOut = transactions
+        .filter((item) => item.type === "out")
+        .reduce(
+            (total, item) =>
+                total + Number(item.amount),
+            0
+        );
 
-    const maxCashFlow = Math.max(
-        ...cashFlowData.map((day) =>
-            Math.max(
-                day.moneyIn,
-                day.moneyOut
+    const startingBalance =
+        Number(
+            localStorage.getItem("startingBalance")
+        ) || 0;
+
+    const balance =
+        startingBalance +
+        moneyIn -
+        moneyOut;
+
+    // =========================
+    // SAVINGS CALCULATIONS
+    // =========================
+
+    const savingsPercentage =
+        savingsTarget.target > 0
+            ? Math.min(
+                (savingsTarget.saved /
+                    savingsTarget.target) *
+                100,
+                100
             )
-        ),
-        1
+            : 0;
+
+    const savingsRemaining = Math.max(
+        savingsTarget.target -
+        savingsTarget.saved,
+        0
     );
+
+    const savingsCompleted =
+        savingsTarget.target > 0 &&
+        savingsTarget.saved >=
+        savingsTarget.target;
+
+    // =========================
+    // ADD TRANSACTION
+    // =========================
+
+    function addTransaction(e) {
+        e.preventDefault();
+
+        if (
+            !amount ||
+            !category ||
+            Number(amount) <= 0
+        ) {
+            return;
+        }
+
+        const newTransaction = {
+            id: Date.now(),
+            amount: Number(amount),
+            type,
+            category,
+            note,
+            date: new Date()
+                .toISOString()
+                .split("T")[0],
+        };
+
+        setTransactions([
+            newTransaction,
+            ...transactions,
+        ]);
+
+        setAmount("");
+        setCategory("");
+        setNote("");
+    }
+
+    // =========================
+    // DELETE TRANSACTION
+    // =========================
+
+    function deleteTransaction(id) {
+        setTransactions(
+            transactions.filter(
+                (item) => item.id !== id
+            )
+        );
+    }
+
+    // =========================
+    // CREATE SAVINGS TARGET
+    // =========================
+
+    function createSavingsTarget(e) {
+        e.preventDefault();
+
+        if (
+            !targetName ||
+            !targetAmount ||
+            Number(targetAmount) <= 0
+        ) {
+            return;
+        }
+
+        const newTarget = {
+            name: targetName,
+            target: Number(targetAmount),
+            saved: 0,
+            date: targetDate,
+            history: [],
+        };
+
+        setSavingsTarget(newTarget);
+
+        setTargetName("");
+        setTargetAmount("");
+        setTargetDate("");
+    }
+
+    // =========================
+    // DELETE SAVINGS TARGET
+    // =========================
+
+    function deleteSavingsTarget() {
+        setSavingsTarget({
+            name: "",
+            target: 0,
+            saved: 0,
+            date: "",
+            history: [],
+        });
+    }
+
+    // =========================
+    // ADD SAVINGS
+    // =========================
+
+    function addSavings(e) {
+        e.preventDefault();
+
+        if (
+            !savingsAmount ||
+            Number(savingsAmount) <= 0
+        ) {
+            return;
+        }
+
+        const amountToSave =
+            Number(savingsAmount);
+
+        if (savingsRemaining <= 0) {
+            alert(
+                "Your savings target has been reached!"
+            );
+            return;
+        }
+
+        if (amountToSave > balance) {
+            alert(
+                `You only have ${currencySymbol}${balance.toLocaleString()} available.`
+            );
+            return;
+        }
+
+        if (amountToSave > savingsRemaining) {
+            alert(
+                `You only need ${currencySymbol}${savingsRemaining.toLocaleString()} to reach your target.`
+            );
+            return;
+        }
+
+        const newSavings = {
+            id: Date.now(),
+            amount: amountToSave,
+            date: new Date()
+                .toISOString()
+                .split("T")[0],
+        };
+
+        setSavingsTarget({
+            ...savingsTarget,
+            saved:
+                savingsTarget.saved +
+                amountToSave,
+            history: [
+                newSavings,
+                ...(savingsTarget.history || []),
+            ],
+        });
+
+        const savingsTransaction = {
+            id: Date.now() + 1,
+            amount: amountToSave,
+            type: "out",
+            category: "Savings",
+            note: `Savings for ${savingsTarget.name}`,
+            date: new Date()
+                .toISOString()
+                .split("T")[0],
+        };
+
+        setTransactions([
+            savingsTransaction,
+            ...transactions,
+        ]);
+
+        window.dispatchEvent(
+            new Event("transactionsUpdated")
+        );
+
+        setSavingsAmount("");
+    }
+
+    // =========================
+    // DELETE SAVINGS HISTORY
+    // =========================
+
+    function deleteSavingsHistory(id) {
+        const savingsToRemove =
+            (savingsTarget.history || []).find(
+                (item) => item.id === id
+            );
+
+        if (!savingsToRemove) {
+            return;
+        }
+
+        const confirmDelete = window.confirm(
+            `Delete this savings entry of ${currencySymbol}${savingsToRemove.amount.toLocaleString()}?`
+        );
+
+        if (!confirmDelete) {
+            return;
+        }
+
+        const updatedHistory =
+            savingsTarget.history.filter(
+                (item) => item.id !== id
+            );
+
+        setSavingsTarget({
+            ...savingsTarget,
+            saved: Math.max(
+                savingsTarget.saved -
+                savingsToRemove.amount,
+                0
+            ),
+            history: updatedHistory,
+        });
+
+        const updatedTransactions =
+            transactions.filter(
+                (item) =>
+                    !(
+                        item.category === "Savings" &&
+                        item.amount ===
+                        savingsToRemove.amount &&
+                        item.date ===
+                        savingsToRemove.date
+                    )
+            );
+
+        setTransactions(updatedTransactions);
+    }
+
+    // =========================
+    // CASH FLOW
+    // =========================
+
+    const cashFlow = [
+        { day: "Day 1", amount: 0 },
+        { day: "Day 2", amount: 0 },
+        { day: "Day 3", amount: 0 },
+        { day: "Day 4", amount: 0 },
+        { day: "Day 5", amount: 0 },
+        { day: "Day 6", amount: 0 },
+        { day: "Day 7", amount: 0 },
+        { day: "Day 8", amount: 0 },
+        { day: "Day 9", amount: 0 },
+        { day: "Day 10", amount: 0 },
+        { day: "Day 11", amount: 0 },
+        { day: "Day 12", amount: 0 },
+    ];
+
+    // =========================
+    // CSV EXPORT
+    // =========================
+
+    function exportCSV() {
+        if (transactions.length === 0) {
+            alert(
+                "There are no transactions to export."
+            );
+            return;
+        }
+
+        const headers = [
+            "Date",
+            "Type",
+            "Category",
+            "Amount",
+            "Note",
+        ];
+
+        const rows = transactions.map((item) => [
+            item.date,
+            item.type,
+            item.category,
+            item.amount,
+            item.note,
+        ]);
+
+        const csvContent = [
+            headers,
+            ...rows,
+        ]
+            .map((row) => row.join(","))
+            .join("\n");
+
+        const blob = new Blob(
+            [csvContent],
+            { type: "text/csv" }
+        );
+
+        const url =
+            URL.createObjectURL(blob);
+
+        const link =
+            document.createElement("a");
+
+        link.href = url;
+        link.download =
+            "transactions.csv";
+
+        link.click();
+
+        URL.revokeObjectURL(url);
+    }
+
+    // =========================
+    // SIGN OUT
+    // =========================
+
+    function handleSignOut() {
+        localStorage.removeItem(
+            "bookkeepingUser"
+        );
+
+        navigate("/login");
+    }
 
     return (
-        <div className="min-h-screen bg-[#F5F7FB] flex">
+        <div className="min-h-screen bg-gray-100">
 
             {/* =========================
                 SIDEBAR
             ========================= */}
-            <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
 
-                <div className="p-6 border-b border-gray-200">
-                    <h1 className="text-2xl font-bold text-blue-600">
-                        Bookkeeping
-                    </h1>
+            <aside className="fixed left-0 top-0 h-screen w-64 bg-white shadow-md p-6">
 
-                    <p className="text-xs text-gray-500 mt-1">
-                        Simple financial management
-                    </p>
-                </div>
+                <h1 className="text-2xl font-bold text-blue-600 mb-8">
+                    Bookkeeping
+                </h1>
 
-                <nav className="p-4 flex-1">
+                <nav className="space-y-4">
 
-                    <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-3">
-                        Menu
-                    </p>
-
-                    <a
-                        href="/dashboard"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold mb-2"
+                    <Link
+                        to="/dashboard"
+                        className="block font-semibold text-blue-600"
                     >
-                        <span>📊</span>
-                        Dashboard
-                    </a>
+                        📊 Dashboard
+                    </Link>
 
-                    <a
-                        href="/transactions"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
+                    <Link
+                        to="/transactions"
+                        className="block text-gray-600 hover:text-blue-600"
                     >
-                        <span>💳</span>
-                        Transactions
-                    </a>
+                        💳 Transactions
+                    </Link>
 
-                    <a
-                        href="/categories"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
+                    <Link
+                        to="/dashboard"
+                        className="block text-gray-600 hover:text-blue-600"
                     >
-                        <span>📁</span>
-                        Categories
-                    </a>
+                        🎯 Savings Target
+                    </Link>
 
-                    <a
-                        href="/reports"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
+                    <Link
+                        to="/categories"
+                        className="block text-gray-600 hover:text-blue-600"
                     >
-                        <span>📈</span>
-                        Reports
-                    </a>
+                        📁 Categories
+                    </Link>
 
-                    <a
-                        href="/settings"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
+                    <Link
+                        to="/reports"
+                        className="block text-gray-600 hover:text-blue-600"
                     >
-                        <span>⚙️</span>
-                        Settings
-                    </a>
+                        📈 Reports
+                    </Link>
+
+                    <Link
+                        to="/settings"
+                        className="block text-gray-600 hover:text-blue-600"
+                    >
+                        ⚙️ Settings
+                    </Link>
+
+                    <button
+                        onClick={handleSignOut}
+                        className="block text-red-600 hover:text-red-700 font-semibold pt-4"
+                    >
+                        🚪 Sign Out
+                    </button>
 
                 </nav>
-
-                <div className="p-4 border-t border-gray-200">
-                    <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50">
-                        <span>🚪</span>
-                        Logout
-                    </button>
-                </div>
 
             </aside>
 
             {/* =========================
                 MAIN
             ========================= */}
-            <div className="flex-1">
+
+            <main className="ml-64 p-8">
 
                 {/* HEADER */}
-                <header className="bg-white border-b border-gray-200">
 
-                    <div className="px-6 py-5 flex justify-between items-center">
+                <div className="flex justify-between items-center mb-8">
+
+                    <div>
+                        <h2 className="text-3xl font-bold text-gray-800">
+                            Dashboard
+                        </h2>
+
+                        <p className="text-gray-500">
+                            Welcome,{" "}
+                            <span className="font-semibold text-gray-700">
+                                {user?.name || businessName}
+                            </span>
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={exportCSV}
+                        className="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700"
+                    >
+                        Export CSV
+                    </button>
+
+                </div>
+
+                {/* =========================
+                    SUMMARY
+                ========================= */}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+                    <div className="bg-white rounded-xl shadow p-6">
+                        <p className="text-gray-500">
+                            Current Balance
+                        </p>
+
+                        <h3 className="text-2xl font-bold mt-2">
+                            {currencySymbol}
+                            {balance.toLocaleString()}
+                        </h3>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow p-6">
+                        <p className="text-gray-500">
+                            Money In
+                        </p>
+
+                        <h3 className="text-2xl font-bold text-green-600 mt-2">
+                            {currencySymbol}
+                            {moneyIn.toLocaleString()}
+                        </h3>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow p-6">
+                        <p className="text-gray-500">
+                            Money Out
+                        </p>
+
+                        <h3 className="text-2xl font-bold text-red-600 mt-2">
+                            {currencySymbol}
+                            {moneyOut.toLocaleString()}
+                        </h3>
+                    </div>
+
+                </div>
+
+                {/* =========================
+                    SAVINGS TARGET
+                ========================= */}
+
+                <div className="bg-white rounded-xl shadow p-6 mb-8">
+
+                    <div className="flex justify-between items-center mb-6">
 
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">
-                                Good day 👋
+                            <h2 className="text-2xl font-bold">
+                                🎯 Savings Target
                             </h2>
 
-                            <p className="text-sm text-gray-500">
-                                Here's your financial overview.
+                            <p className="text-gray-500">
+                                Set and track your savings goal.
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-3">
-
-                            <div className="hidden sm:block text-right">
-                                <p className="text-sm font-semibold text-gray-800">
-                                    {businessName}
-                                </p>
-
-                                <p className="text-xs text-gray-500">
-                                    Business Account
-                                </p>
-                            </div>
-
-                            <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
-                                B
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </header>
-
-                {/* CONTENT */}
-                <main className="max-w-7xl mx-auto px-6 py-10">
-
-                    {/* PAGE TITLE */}
-                    <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">
-                                Dashboard
-                            </h1>
-
-                            <p className="text-gray-500 mt-2">
-                                Keep track of your money in and money out.
-                            </p>
-                        </div>
-
-                        <button
-                            onClick={exportCSV}
-                            className="bg-green-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-green-700 transition"
-                        >
-                            ↓ Export CSV
-                        </button>
-
-                    </div>
-
-                    {/* SUMMARY CARDS */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                        {/* BALANCE */}
-                        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-
-                            <p className="text-sm text-gray-500">
-                                Current Balance
-                            </p>
-
-                            <h3 className="text-3xl font-bold text-gray-900 mt-3">
-                                {currencySymbol}
-                                {balance.toLocaleString()}
-                            </h3>
-
-                        </div>
-
-                        {/* MONEY IN */}
-                        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-
-                            <p className="text-sm text-gray-500">
-                                Money In
-                            </p>
-
-                            <h3 className="text-3xl font-bold text-green-600 mt-3">
-                                {currencySymbol}
-                                {moneyIn.toLocaleString()}
-                            </h3>
-
-                        </div>
-
-                        {/* MONEY OUT */}
-                        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-
-                            <p className="text-sm text-gray-500">
-                                Money Out
-                            </p>
-
-                            <h3 className="text-3xl font-bold text-red-500 mt-3">
-                                {currencySymbol}
-                                {moneyOut.toLocaleString()}
-                            </h3>
-
-                        </div>
-
-                    </div>
-
-                    {/* ADD TRANSACTION */}
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-8">
-
-                        <div className="p-6 border-b border-gray-200">
-
-                            <h2 className="text-xl font-bold text-gray-900">
-                                Add Transaction
-                            </h2>
-
-                            <p className="text-sm text-gray-500 mt-1">
-                                Record money coming in or going out.
-                            </p>
-
-                        </div>
-
-                        <form
-                            onSubmit={addTransaction}
-                            className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6"
-                        >
-
-                            {/* AMOUNT */}
-                            <div>
-
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Amount
-                                </label>
-
-                                <input
-                                    type="number"
-                                    placeholder={`${currencySymbol}0.00`}
-                                    value={amount}
-                                    onChange={(e) =>
-                                        setAmount(e.target.value)
-                                    }
-                                    className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-
-                            </div>
-
-                            {/* TYPE */}
-                            <div>
-
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Transaction Type
-                                </label>
-
-                                <select
-                                    value={type}
-                                    onChange={(e) =>
-                                        setType(e.target.value)
-                                    }
-                                    className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="in">
-                                        Money In
-                                    </option>
-
-                                    <option value="out">
-                                        Money Out
-                                    </option>
-                                </select>
-
-                            </div>
-
-                            {/* CATEGORY */}
-                            <div>
-
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Category
-                                </label>
-
-                                <select
-                                    value={category}
-                                    onChange={(e) =>
-                                        setCategory(e.target.value)
-                                    }
-                                    className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option>Sales</option>
-                                    <option>Stock/Inventory</option>
-                                    <option>Rent</option>
-                                    <option>Transport</option>
-                                    <option>Utilities</option>
-                                    <option>Salaries</option>
-                                    <option>Other</option>
-                                </select>
-
-                            </div>
-
-                            {/* NOTE */}
-                            <div>
-
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Note
-                                </label>
-
-                                <input
-                                    type="text"
-                                    placeholder="Optional note"
-                                    value={note}
-                                    onChange={(e) =>
-                                        setNote(e.target.value)
-                                    }
-                                    className="w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-
-                            </div>
-
-                            {/* SAVE */}
-                            <div className="md:col-span-2">
-
-                                <button
-                                    type="submit"
-                                    className="bg-blue-600 text-white px-7 py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
-                                >
-                                    + Save Transaction
-                                </button>
-
-                            </div>
-
-                        </form>
-
-                    </div>
-
-                    {/* 30 DAY CASH FLOW */}
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-8">
-
-                        <div className="p-6 border-b border-gray-200">
-
-                            <h2 className="text-xl font-bold text-gray-900">
-                                30 Day Cash Flow
-                            </h2>
-
-                            <p className="text-sm text-gray-500 mt-1">
-                                Your money in and money out for the last 30 days.
-                            </p>
-
-                        </div>
-
-                        <div className="p-6">
-
-                            <div className="flex items-end gap-1 h-64">
-
-                                {cashFlowData.map((day, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex-1 flex items-end gap-1 h-full"
-                                        title={`${day.date} - In: ${currencySymbol}${day.moneyIn.toLocaleString()} | Out: ${currencySymbol}${day.moneyOut.toLocaleString()}`}
-                                    >
-                                        <div
-                                            className="bg-green-400 rounded-t-lg w-1/2"
-                                            style={{
-                                                height: `${(day.moneyIn / maxCashFlow) * 100}%`,
-                                            }}
-                                        />
-
-                                        <div
-                                            className="bg-red-400 rounded-t-lg w-1/2"
-                                            style={{
-                                                height: `${(day.moneyOut / maxCashFlow) * 100}%`,
-                                            }}
-                                        />
-                                    </div>
-                                ))}
-
-                            </div>
-
-                            {/* LEGEND */}
-                            <div className="flex justify-center gap-6 mt-6 text-sm">
-
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 bg-green-400 rounded-full"></span>
-                                    Money In
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <span className="w-3 h-3 bg-red-400 rounded-full"></span>
-                                    Money Out
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    {/* RECENT TRANSACTIONS */}
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mt-8">
-
-                        <div className="p-6 border-b border-gray-200">
-
-                            <h2 className="text-xl font-bold text-gray-900">
-                                Recent Transactions
-                            </h2>
-
-                            <p className="text-sm text-gray-500 mt-1">
-                                Your latest business transactions.
-                            </p>
-
-                        </div>
-
-                        {transactions.length === 0 ? (
-
-                            <div className="p-10 text-center">
-
-                                <div className="text-4xl mb-3">
-                                    📋
-                                </div>
-
-                                <p className="font-medium text-gray-700">
-                                    No transactions yet
-                                </p>
-
-                                <p className="text-sm text-gray-500 mt-1">
-                                    Add your first transaction above.
-                                </p>
-
-                            </div>
-
-                        ) : (
-
-                            transactions.map((transaction) => (
-
-                                <div
-                                    key={transaction.id}
-                                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 border-b last:border-b-0"
-                                >
-
-                                    <div>
-                                        <p className="font-semibold text-gray-900">
-                                            {transaction.category}
-                                        </p>
-
-                                        <p className="text-sm text-gray-500 mt-1">
-                                            {transaction.note || "No note"}{" "}
-                                            • {transaction.date}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex items-center gap-5">
-
-                                        <p
-                                            className={
-                                                transaction.type === "in"
-                                                    ? "font-bold text-green-600"
-                                                    : "font-bold text-red-500"
-                                            }
-                                        >
-                                            {transaction.type === "in"
-                                                ? "+"
-                                                : "-"}
-                                            {currencySymbol}
-                                            {transaction.amount.toLocaleString()}
-                                        </p>
-
-                                        <button
-                                            onClick={() =>
-                                                deleteTransaction(
-                                                    transaction.id
-                                                )
-                                            }
-                                            className="text-sm text-red-500 hover:text-red-700"
-                                        >
-                                            Delete
-                                        </button>
-
-                                    </div>
-
-                                </div>
-
-                            ))
-
+                        {savingsTarget.name && (
+                            <button
+                                onClick={deleteSavingsTarget}
+                                className="text-red-500 hover:text-red-700"
+                            >
+                                Delete Target
+                            </button>
                         )}
 
                     </div>
 
-                </main>
+                    {!savingsTarget.name ? (
 
-            </div>
+                        <form
+                            onSubmit={createSavingsTarget}
+                            className="space-y-4"
+                        >
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                                <input
+                                    type="text"
+                                    placeholder="Target Name"
+                                    value={targetName}
+                                    onChange={(e) =>
+                                        setTargetName(
+                                            e.target.value
+                                        )
+                                    }
+                                    className="border rounded-lg p-3"
+                                />
+
+                                <input
+                                    type="number"
+                                    placeholder="Target Amount"
+                                    value={targetAmount}
+                                    onChange={(e) =>
+                                        setTargetAmount(
+                                            e.target.value
+                                        )
+                                    }
+                                    className="border rounded-lg p-3"
+                                />
+
+                                <input
+                                    type="date"
+                                    value={targetDate}
+                                    onChange={(e) =>
+                                        setTargetDate(
+                                            e.target.value
+                                        )
+                                    }
+                                    className="border rounded-lg p-3"
+                                />
+
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+                            >
+                                Create Savings Target
+                            </button>
+
+                        </form>
+
+                    ) : (
+
+                        <>
+
+                            {/* TARGET DETAILS */}
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+                                <div>
+                                    <p className="text-gray-500 text-sm">
+                                        Target Name
+                                    </p>
+
+                                    <p className="font-bold text-lg">
+                                        {savingsTarget.name}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-gray-500 text-sm">
+                                        Target Amount
+                                    </p>
+
+                                    <p className="font-bold text-lg">
+                                        {currencySymbol}
+                                        {savingsTarget.target.toLocaleString()}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-gray-500 text-sm">
+                                        Target Date
+                                    </p>
+
+                                    <p className="font-bold text-lg">
+                                        {savingsTarget.date ||
+                                            "No date set"}
+                                    </p>
+                                </div>
+
+                            </div>
+
+                            {/* PROGRESS */}
+
+                            <div className="mb-6">
+
+                                <div className="flex justify-between mb-2">
+
+                                    <p className="font-semibold">
+                                        Savings Progress
+                                    </p>
+
+                                    <p
+                                        className={
+                                            savingsCompleted
+                                                ? "font-bold text-green-600"
+                                                : "font-bold text-blue-600"
+                                        }
+                                    >
+                                        {savingsCompleted
+                                            ? "Target Reached 🎉"
+                                            : `${savingsPercentage.toFixed(
+                                                0
+                                            )}%`}
+                                    </p>
+
+                                </div>
+
+                                <div className="w-full bg-gray-200 rounded-full h-4">
+
+                                    <div
+                                        className={
+                                            savingsCompleted
+                                                ? "bg-green-500 h-4 rounded-full transition-all"
+                                                : "bg-blue-600 h-4 rounded-full transition-all"
+                                        }
+                                        style={{
+                                            width: `${savingsPercentage}%`,
+                                        }}
+                                    />
+
+                                </div>
+
+                            </div>
+
+                            {/* SAVINGS SUMMARY */}
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+                                <div className="border rounded-xl p-4">
+                                    <p className="text-gray-500">
+                                        Saved
+                                    </p>
+
+                                    <p className="text-xl font-bold text-green-600">
+                                        {currencySymbol}
+                                        {savingsTarget.saved.toLocaleString()}
+                                    </p>
+                                </div>
+
+                                <div className="border rounded-xl p-4">
+                                    <p className="text-gray-500">
+                                        Target
+                                    </p>
+
+                                    <p className="text-xl font-bold">
+                                        {currencySymbol}
+                                        {savingsTarget.target.toLocaleString()}
+                                    </p>
+                                </div>
+
+                                <div className="border rounded-xl p-4">
+                                    <p className="text-gray-500">
+                                        Remaining
+                                    </p>
+
+                                    <p className="text-xl font-bold text-blue-600">
+                                        {currencySymbol}
+                                        {savingsRemaining.toLocaleString()}
+                                    </p>
+                                </div>
+
+                            </div>
+
+                            {/* ADD SAVINGS */}
+
+                            {!savingsCompleted && (
+
+                                <form
+                                    onSubmit={addSavings}
+                                    className="mt-6 flex flex-col md:flex-row gap-3"
+                                >
+
+                                    <input
+                                        type="number"
+                                        placeholder="Enter amount to save"
+                                        value={savingsAmount}
+                                        onChange={(e) =>
+                                            setSavingsAmount(
+                                                e.target.value
+                                            )
+                                        }
+                                        className="border rounded-lg p-3 flex-1"
+                                    />
+
+                                    <button
+                                        type="submit"
+                                        className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700"
+                                    >
+                                        Add Savings
+                                    </button>
+
+                                </form>
+
+                            )}
+
+                            {/* COMPLETED */}
+
+                            {savingsCompleted && (
+
+                                <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
+
+                                    <p className="text-green-700 font-semibold">
+                                        🎉 Congratulations! You have reached your savings target.
+                                    </p>
+
+                                    <p className="text-sm text-green-600 mt-1">
+                                        Your target of{" "}
+                                        {currencySymbol}
+                                        {savingsTarget.target.toLocaleString()}{" "}
+                                        has been completed.
+                                    </p>
+
+                                </div>
+
+                            )}
+
+                            {/* SAVINGS HISTORY */}
+
+                            {savingsTarget.history &&
+                                savingsTarget.history.length > 0 && (
+
+                                    <div className="mt-8">
+
+                                        <h3 className="text-lg font-bold mb-4">
+                                            Savings History
+                                        </h3>
+
+                                        <div className="overflow-x-auto">
+
+                                            <table className="w-full text-left">
+
+                                                <thead>
+                                                    <tr className="border-b">
+
+                                                        <th className="py-3">
+                                                            Date
+                                                        </th>
+
+                                                        <th className="py-3">
+                                                            Amount
+                                                        </th>
+
+                                                        <th className="py-3">
+                                                            Action
+                                                        </th>
+
+                                                    </tr>
+                                                </thead>
+
+                                                <tbody>
+
+                                                    {savingsTarget.history.map(
+                                                        (item) => (
+
+                                                            <tr
+                                                                key={
+                                                                    item.id
+                                                                }
+                                                                className="border-b"
+                                                            >
+
+                                                                <td className="py-3">
+                                                                    {
+                                                                        item.date
+                                                                    }
+                                                                </td>
+
+                                                                <td className="py-3 font-semibold text-green-600">
+                                                                    {
+                                                                        currencySymbol
+                                                                    }
+                                                                    {item.amount.toLocaleString()}
+                                                                </td>
+
+                                                                <td className="py-3">
+
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            deleteSavingsHistory(
+                                                                                item.id
+                                                                            )
+                                                                        }
+                                                                        className="text-red-500 hover:text-red-700"
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+
+                                                                </td>
+
+                                                            </tr>
+
+                                                        )
+                                                    )}
+
+                                                </tbody>
+
+                                            </table>
+
+                                        </div>
+
+                                    </div>
+
+                                )}
+
+                        </>
+
+                    )}
+
+                </div>
+
+                {/* =========================
+                    CASH FLOW
+                ========================= */}
+
+                <div className="bg-white rounded-xl shadow p-6 mb-8">
+
+                    <h2 className="text-xl font-bold mb-6">
+                        30 Day Cash Flow
+                    </h2>
+
+                    <div className="flex items-end gap-3 h-64">
+
+                        {cashFlow.map((item, index) => (
+
+                            <div
+                                key={index}
+                                className="flex-1 flex flex-col items-center justify-end h-full"
+                            >
+
+                                <div
+                                    className="bg-blue-600 w-full rounded-t-lg"
+                                    style={{
+                                        height: `${Math.max(
+                                            item.amount,
+                                            5
+                                        )}%`,
+                                    }}
+                                />
+
+                                <span className="text-xs text-gray-500 mt-2">
+                                    {item.day}
+                                </span>
+
+                            </div>
+
+                        ))}
+
+                    </div>
+
+                </div>
+
+                {/* =========================
+                    ORIGINAL ADD TRANSACTION
+                ========================= */}
+
+                <div className="bg-white rounded-xl shadow p-6 mb-8">
+
+                    <h2 className="text-xl font-bold mb-6">
+                        Add Transaction
+                    </h2>
+
+                    <form
+                        onSubmit={addTransaction}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    >
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Amount
+                            </label>
+
+                            <input
+                                type="number"
+                                value={amount}
+                                onChange={(e) =>
+                                    setAmount(
+                                        e.target.value
+                                    )
+                                }
+                                placeholder="Enter amount"
+                                className="w-full border rounded-lg p-3"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Transaction Type
+                            </label>
+
+                            <select
+                                value={type}
+                                onChange={(e) =>
+                                    setType(
+                                        e.target.value
+                                    )
+                                }
+                                className="w-full border rounded-lg p-3"
+                            >
+
+                                <option value="in">
+                                    Money In
+                                </option>
+
+                                <option value="out">
+                                    Money Out
+                                </option>
+
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Category
+                            </label>
+
+                            <select
+                                value={category}
+                                onChange={(e) =>
+                                    setCategory(
+                                        e.target.value
+                                    )
+                                }
+                                className="w-full border rounded-lg p-3"
+                            >
+
+                                <option value="">
+                                    Select Category
+                                </option>
+
+                                <option value="Sales">
+                                    Sales
+                                </option>
+
+                                <option value="Stock/Inventory">
+                                    Stock/Inventory
+                                </option>
+
+                                <option value="Rent">
+                                    Rent
+                                </option>
+
+                                <option value="Transport">
+                                    Transport
+                                </option>
+
+                                <option value="Utilities">
+                                    Utilities
+                                </option>
+
+                                <option value="Salaries">
+                                    Salaries
+                                </option>
+
+                                <option value="Other">
+                                    Other
+                                </option>
+
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Note
+                            </label>
+
+                            <input
+                                type="text"
+                                value={note}
+                                onChange={(e) =>
+                                    setNote(
+                                        e.target.value
+                                    )
+                                }
+                                placeholder="Optional note"
+                                className="w-full border rounded-lg p-3"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="md:col-span-2 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
+                        >
+                            + Save Transaction
+                        </button>
+
+                    </form>
+
+                </div>
+
+                {/* =========================
+                    RECENT TRANSACTIONS
+                ========================= */}
+
+                <div className="bg-white rounded-xl shadow p-6">
+
+                    <div className="flex justify-between items-center mb-6">
+
+                        <h2 className="text-xl font-bold">
+                            Recent Transactions
+                        </h2>
+
+                        <Link
+                            to="/transactions"
+                            className="text-blue-600 hover:underline"
+                        >
+                            View All
+                        </Link>
+
+                    </div>
+
+                    {transactions.length === 0 ? (
+
+                        <p className="text-gray-500">
+                            No transactions yet.
+                        </p>
+
+                    ) : (
+
+                        <div className="overflow-x-auto">
+
+                            <table className="w-full text-left">
+
+                                <thead>
+
+                                    <tr className="border-b">
+
+                                        <th className="py-3">
+                                            Date
+                                        </th>
+
+                                        <th className="py-3">
+                                            Category
+                                        </th>
+
+                                        <th className="py-3">
+                                            Note
+                                        </th>
+
+                                        <th className="py-3">
+                                            Type
+                                        </th>
+
+                                        <th className="py-3">
+                                            Amount
+                                        </th>
+
+                                        <th className="py-3">
+                                            Action
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody>
+
+                                    {transactions
+                                        .slice(0, 10)
+                                        .map(
+                                            (item) => (
+
+                                                <tr
+                                                    key={
+                                                        item.id
+                                                    }
+                                                    className="border-b"
+                                                >
+
+                                                    <td className="py-3">
+                                                        {
+                                                            item.date
+                                                        }
+                                                    </td>
+
+                                                    <td className="py-3">
+                                                        {
+                                                            item.category
+                                                        }
+                                                    </td>
+
+                                                    <td className="py-3">
+                                                        {
+                                                            item.note ||
+                                                            "-"
+                                                        }
+                                                    </td>
+
+                                                    <td
+                                                        className={
+                                                            item.type ===
+                                                                "in"
+                                                                ? "py-3 text-green-600"
+                                                                : "py-3 text-red-600"
+                                                        }
+                                                    >
+                                                        {item.type ===
+                                                            "in"
+                                                            ? "Money In"
+                                                            : "Money Out"}
+                                                    </td>
+
+                                                    <td
+                                                        className={`py-3 font-semibold ${item.type ===
+                                                                "in"
+                                                                ? "text-green-600"
+                                                                : "text-red-600"
+                                                            }`}
+                                                    >
+                                                        {item.type ===
+                                                            "in"
+                                                            ? "+"
+                                                            : "-"}
+                                                        {
+                                                            currencySymbol
+                                                        }
+                                                        {Number(
+                                                            item.amount
+                                                        ).toLocaleString()}
+                                                    </td>
+
+                                                    <td className="py-3">
+
+                                                        <button
+                                                            onClick={() =>
+                                                                deleteTransaction(
+                                                                    item.id
+                                                                )
+                                                            }
+                                                            className="text-red-500 hover:text-red-700"
+                                                        >
+                                                            Delete
+                                                        </button>
+
+                                                    </td>
+
+                                                </tr>
+
+                                            )
+                                        )}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    )}
+
+                </div>
+
+            </main>
 
         </div>
     );

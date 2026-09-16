@@ -13,13 +13,13 @@ function Home() {
 
     return (
         <>
-            {/* NAVBAR + HERO */}
+
             <div className="relative">
                 <Navbar />
                 <Hero />
             </div>
 
-            {/* BUSINESS FINANCE SECTION */}
+
             <section className="bg-gray-50 py-20 md:py-24">
                 <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 md:grid-cols-2 md:items-center">
 
@@ -91,7 +91,6 @@ function Home() {
                         </div>
                     </div>
 
-                    {/* DASHBOARD PREVIEW */}
                     <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl md:p-8">
 
                         <div className="flex items-center justify-between">
@@ -161,7 +160,7 @@ function Home() {
                 </div>
             </section>
 
-            {/* BENEFITS */}
+
             <section className="bg-gray-900 py-16 text-white md:py-20">
                 <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 md:grid-cols-[1.15fr_1fr] md:items-center">
 

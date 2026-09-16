@@ -1,6 +1,18 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Navbar() {
+    const navigate = useNavigate();
+
+    const isLoggedIn = localStorage.getItem(
+        "bookkeepingUser"
+    );
+
+
+    function handleSignOut() {
+        sessionStorage.removeItem("bookkeepingUser");
+        navigate("/login");
+    }
+
     return (
         <nav className="absolute top-3 left-1/2 -translate-x-1/2 w-[92%] max-w-6xl z-20">
             <div className="bg-white rounded-2xl shadow-lg px-6 py-4 flex items-center justify-between">
@@ -38,28 +50,51 @@ function Navbar() {
                     </Link>
                 </div>
 
-                {/* Buttons */}
+                {/* Right Side */}
                 <div className="flex items-center gap-3">
+
+                    {/* Dashboard */}
                     <Link
-                        to="/dashboard"
+                        to={isLoggedIn ? "/dashboard" : "/login"}
                         className="hidden sm:block text-gray-700 hover:text-blue-600 transition"
                     >
                         Dashboard
                     </Link>
 
-                    <Link
-                        to="/login"
-                        className="text-gray-700 hover:text-blue-600 transition"
-                    >
-                        Login
-                    </Link>
+                    {/* Login / Sign Out */}
+                    {isLoggedIn ? (
+                        <button
+                            onClick={handleSignOut}
+                            className="text-red-600 hover:text-red-700 transition font-semibold"
+                        >
+                            Sign Out
+                        </button>
+                    ) : (
+                        <Link
+                            to="/login"
+                            className="text-gray-700 hover:text-blue-600 transition"
+                        >
+                            Login
+                        </Link>
+                    )}
 
-                    <Link
-                        to="/login"
-                        className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition"
-                    >
-                        Get Started
-                    </Link>
+                    {/* Get Started / Dashboard */}
+                    {isLoggedIn ? (
+                        <Link
+                            to="/dashboard"
+                            className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition"
+                        >
+                            Dashboard
+                        </Link>
+                    ) : (
+                        <Link
+                            to="/signup"
+                            className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition"
+                        >
+                            Get Started
+                        </Link>
+                    )}
+
                 </div>
             </div>
         </nav>
