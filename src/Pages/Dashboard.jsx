@@ -465,10 +465,9 @@ function Dashboard() {
             ========================= */}
 
             <aside className="fixed left-0 top-0 h-screen w-64 bg-white shadow-md p-6">
-
-                <h1 className="text-2xl font-bold text-blue-600 mb-8">
-                    Bookkeeping
-                </h1>
+                <a href="/" aria-label="Go to the BasirSeun home page">
+                    <img src="/Basir.png" alt="BasirSeun" className="mb-6 h-24 w-full object-contain" />
+                </a>
 
                 <nav className="space-y-4">
 
