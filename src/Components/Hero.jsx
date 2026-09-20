@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 function Hero() {
     return (
         <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-blue-100">
@@ -13,12 +15,12 @@ function Hero() {
                                 Simple Business Bookkeeping
                             </span>
 
-                            <h2 className="text-4xl md:text-6xl font-bold text-gray-900 leading-tight mt-6">
-                                Take control of your
+                            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 leading-tight mt-6">
+                                Take control of your{" "}
                                 <span className="text-blue-600">
-                                    {" "}business finances.
+                                    business finances.
                                 </span>
-                            </h2>
+                            </h1>
 
                             <p className="text-lg text-gray-600 mt-6 leading-8">
                                 Track your income, expenses and balance in one simple place.
@@ -29,19 +31,19 @@ function Hero() {
                             {/* BUTTONS */}
                             <div className="flex flex-col sm:flex-row gap-4 mt-8">
 
-                                <a
-                                    href="/dashboard"
+                                <Link
+                                    to="/signup"
                                     className="bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-center hover:bg-blue-700 transition shadow-lg shadow-blue-200"
                                 >
                                     Get Started →
-                                </a>
+                                </Link>
 
-                                <a
-                                    href="#how-it-works"
+                                <Link
+                                    to="/how-it-works"
                                     className="border border-gray-300 bg-white text-gray-700 px-8 py-4 rounded-xl font-semibold text-center hover:bg-gray-50 transition"
                                 >
                                     Learn More
-                                </a>
+                                </Link>
 
                             </div>
 

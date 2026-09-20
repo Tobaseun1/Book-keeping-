@@ -1,78 +1,132 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+const CATEGORIES = [
+    "Sales",
+    "Services",
+    "Salary",
+    "Rent",
+    "Food",
+    "Transport",
+    "Utilities",
+    "Marketing",
+    "Supplies",
+    "Savings",
+    "Other",
+];
+
+const CURRENCY_SYMBOLS = {
+    NGN: "₦",
+    USD: "$",
+    GBP: "£",
+    EUR: "€",
+};
+
+function getToday() {
+    const date = new Date();
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+function formatNumber(value) {
+    return Number(value || 0).toLocaleString();
+}
+
+function getTransactions() {
+    try {
+        const saved = localStorage.getItem("transactions");
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+}
+
 function Dashboard() {
     const navigate = useNavigate();
 
-    // =========================
-    // LOGGED-IN USER
-    // =========================
-
-    const user = JSON.parse(
-        localStorage.getItem("bookkeepingUser") || "null"
-    );
-
-    // =========================
-    // TRANSACTIONS
-    // =========================
-
-    const [transactions, setTransactions] = useState(() => {
-        const saved = localStorage.getItem("transactions");
-        return saved ? JSON.parse(saved) : [];
-    });
-
-    const [amount, setAmount] = useState("");
-    const [type, setType] = useState("in");
-    const [category, setCategory] = useState("");
-    const [note, setNote] = useState("");
-
-    // =========================
-    // SAVINGS TARGET
-    // =========================
-
-    const [savingsTarget, setSavingsTarget] = useState(() => {
-        const saved = localStorage.getItem("savingsTarget");
-
-        return saved
-            ? JSON.parse(saved)
-            : {
-                name: "",
-                target: 0,
-                saved: 0,
-                date: "",
-                history: [],
-            };
-    });
-
-    const [targetName, setTargetName] = useState("");
-    const [targetAmount, setTargetAmount] = useState("");
-    const [targetDate, setTargetDate] = useState("");
-    const [savingsAmount, setSavingsAmount] = useState("");
-
-    // =========================
-    // BUSINESS SETTINGS
-    // =========================
+    /* =========================
+       BASIC BUSINESS INFORMATION
+    ========================= */
 
     const businessName =
-        localStorage.getItem("businessName") ||
-        "My Business";
+        localStorage.getItem("businessName") || "My Business";
 
     const currency =
         localStorage.getItem("currency") || "NGN";
 
-    const currencySymbols = {
-        NGN: "₦",
-        USD: "$",
-        GBP: "£",
-        EUR: "€",
-    };
-
     const currencySymbol =
-        currencySymbols[currency] || "₦";
+        CURRENCY_SYMBOLS[currency] || "₦";
 
-    // =========================
-    // SAVE TRANSACTIONS
-    // =========================
+    const startingBalance =
+        Number(localStorage.getItem("startingBalance")) || 0;
+
+    /* =========================
+       TRANSACTIONS
+    ========================= */
+
+    const [transactions, setTransactions] = useState(
+        getTransactions()
+    );
+
+    const [transactionAmount, setTransactionAmount] =
+        useState("");
+
+    const [transactionType, setTransactionType] =
+        useState("in");
+
+    const [transactionCategory, setTransactionCategory] =
+        useState("Sales");
+
+    const [transactionDate, setTransactionDate] =
+        useState(getToday());
+
+    const [transactionNote, setTransactionNote] =
+        useState("");
+
+    const [transactionMessage, setTransactionMessage] =
+        useState("");
+
+    /* =========================
+       SAVINGS TARGET
+    ========================= */
+
+    const [savingsTarget, setSavingsTarget] =
+        useState(() => {
+            try {
+                const saved =
+                    localStorage.getItem("savingsTarget");
+
+                return saved ? JSON.parse(saved) : null;
+            } catch {
+                return null;
+            }
+        });
+
+    const [targetName, setTargetName] =
+        useState("");
+
+    const [targetAmount, setTargetAmount] =
+        useState("");
+
+    const [targetSaved, setTargetSaved] =
+        useState("");
+
+    const [targetDate, setTargetDate] =
+        useState("");
+
+    const [savingsAmount, setSavingsAmount] =
+        useState("");
+
+    const [savingsMessage, setSavingsMessage] =
+        useState("");
+
+    /* =========================
+       SAVE DATA
+    ========================= */
 
     useEffect(() => {
         localStorage.setItem(
@@ -81,139 +135,186 @@ function Dashboard() {
         );
     }, [transactions]);
 
-    // =========================
-    // SAVE SAVINGS TARGET
-    // =========================
-
     useEffect(() => {
-        localStorage.setItem(
-            "savingsTarget",
-            JSON.stringify(savingsTarget)
-        );
+        if (savingsTarget) {
+            localStorage.setItem(
+                "savingsTarget",
+                JSON.stringify(savingsTarget)
+            );
+        } else {
+            localStorage.removeItem("savingsTarget");
+        }
     }, [savingsTarget]);
 
-    // =========================
-    // CALCULATIONS
-    // =========================
+    /* =========================
+       REFRESH TRANSACTIONS
+    ========================= */
+
+    useEffect(() => {
+        function refreshTransactions() {
+            setTransactions(getTransactions());
+        }
+
+        window.addEventListener(
+            "transactionsUpdated",
+            refreshTransactions
+        );
+
+        return () => {
+            window.removeEventListener(
+                "transactionsUpdated",
+                refreshTransactions
+            );
+        };
+    }, []);
+
+    /* =========================
+       FINANCIAL CALCULATIONS
+    ========================= */
 
     const moneyIn = transactions
-        .filter((item) => item.type === "in")
+        .filter((transaction) => transaction.type === "in")
         .reduce(
-            (total, item) =>
-                total + Number(item.amount),
+            (total, transaction) =>
+                total + Number(transaction.amount || 0),
             0
         );
 
     const moneyOut = transactions
-        .filter((item) => item.type === "out")
+        .filter((transaction) => transaction.type === "out")
         .reduce(
-            (total, item) =>
-                total + Number(item.amount),
+            (total, transaction) =>
+                total + Number(transaction.amount || 0),
             0
         );
 
-    const startingBalance =
-        Number(
-            localStorage.getItem("startingBalance")
-        ) || 0;
-
     const balance =
-        startingBalance +
-        moneyIn -
-        moneyOut;
+        startingBalance + moneyIn - moneyOut;
 
-    // =========================
-    // SAVINGS CALCULATIONS
-    // =========================
+    /* =========================
+       SAVINGS CALCULATIONS
+    ========================= */
+
+    const savingsHistory =
+        savingsTarget?.history || [];
+
+    const totalSaved =
+        savingsHistory.reduce(
+            (total, item) =>
+                total + Number(item.amount || 0),
+            0
+        );
+
+    const targetAmountNumber =
+        Number(savingsTarget?.target || 0);
 
     const savingsPercentage =
-        savingsTarget.target > 0
+        targetAmountNumber > 0
             ? Math.min(
-                (savingsTarget.saved /
-                    savingsTarget.target) *
-                100,
+                (totalSaved / targetAmountNumber) * 100,
                 100
             )
             : 0;
 
     const savingsRemaining = Math.max(
-        savingsTarget.target -
-        savingsTarget.saved,
+        targetAmountNumber - totalSaved,
         0
     );
 
     const savingsCompleted =
-        savingsTarget.target > 0 &&
-        savingsTarget.saved >=
-        savingsTarget.target;
+        targetAmountNumber > 0 &&
+        totalSaved >= targetAmountNumber;
 
-    // =========================
-    // ADD TRANSACTION
-    // =========================
+    /* =========================
+       ADD TRANSACTION
+    ========================= */
 
-    function addTransaction(e) {
-        e.preventDefault();
+    function handleAddTransaction(event) {
+        event.preventDefault();
 
-        if (
-            !amount ||
-            !category ||
-            Number(amount) <= 0
-        ) {
+        const amount = Number(transactionAmount);
+
+        if (!amount || amount <= 0) {
+            setTransactionMessage(
+                "Please enter a valid amount."
+            );
             return;
         }
 
         const newTransaction = {
             id: Date.now(),
-            amount: Number(amount),
-            type,
-            category,
-            note,
-            date: new Date()
-                .toISOString()
-                .split("T")[0],
+            amount,
+            type: transactionType,
+            category: transactionCategory,
+            date: transactionDate,
+            note: transactionNote.trim(),
         };
 
-        setTransactions([
+        setTransactions((current) => [
             newTransaction,
-            ...transactions,
+            ...current,
         ]);
 
-        setAmount("");
-        setCategory("");
-        setNote("");
+        setTransactionAmount("");
+        setTransactionNote("");
+        setTransactionDate(getToday());
+
+        setTransactionMessage(
+            "Transaction added successfully."
+        );
+
+        setTimeout(() => {
+            setTransactionMessage("");
+        }, 2500);
     }
 
-    // =========================
-    // DELETE TRANSACTION
-    // =========================
+    /* =========================
+       DELETE TRANSACTION
+    ========================= */
 
-    function deleteTransaction(id) {
-        setTransactions(
-            transactions.filter(
-                (item) => item.id !== id
+    function handleDeleteTransaction(id) {
+        const confirmed = window.confirm(
+            "Delete this transaction?"
+        );
+
+        if (!confirmed) return;
+
+        setTransactions((current) =>
+            current.filter(
+                (transaction) =>
+                    transaction.id !== id
             )
         );
     }
 
-    // =========================
-    // CREATE SAVINGS TARGET
-    // =========================
+    /* =========================
+       CREATE SAVINGS TARGET
+    ========================= */
 
-    function createSavingsTarget(e) {
-        e.preventDefault();
+    function handleCreateSavingsTarget(event) {
+        event.preventDefault();
+
+        if (!targetName.trim()) {
+            setSavingsMessage(
+                "Please enter a target name."
+            );
+            return;
+        }
 
         if (
-            !targetName ||
             !targetAmount ||
             Number(targetAmount) <= 0
         ) {
+            setSavingsMessage(
+                "Please enter a valid target amount."
+            );
             return;
         }
 
         const newTarget = {
-            name: targetName,
+            name: targetName.trim(),
             target: Number(targetAmount),
-            saved: 0,
+            saved: Number(targetSaved) || 0,
             date: targetDate,
             history: [],
         };
@@ -222,183 +323,219 @@ function Dashboard() {
 
         setTargetName("");
         setTargetAmount("");
+        setTargetSaved("");
         setTargetDate("");
+
+        setSavingsMessage(
+            "Savings target created successfully."
+        );
+
+        setTimeout(() => {
+            setSavingsMessage("");
+        }, 2500);
     }
 
-    // =========================
-    // DELETE SAVINGS TARGET
-    // =========================
+    /* =========================
+       ADD TO SAVINGS
+    ========================= */
 
-    function deleteSavingsTarget() {
-        setSavingsTarget({
-            name: "",
-            target: 0,
-            saved: 0,
-            date: "",
-            history: [],
-        });
-    }
+    function handleAddSavings(event) {
+        event.preventDefault();
 
-    // =========================
-    // ADD SAVINGS
-    // =========================
+        const amount = Number(savingsAmount);
 
-    function addSavings(e) {
-        e.preventDefault();
-
-        if (
-            !savingsAmount ||
-            Number(savingsAmount) <= 0
-        ) {
-            return;
-        }
-
-        const amountToSave =
-            Number(savingsAmount);
-
-        if (savingsRemaining <= 0) {
-            alert(
-                "Your savings target has been reached!"
+        if (!amount || amount <= 0) {
+            setSavingsMessage(
+                "Please enter a valid amount."
             );
             return;
         }
 
-        if (amountToSave > balance) {
-            alert(
-                `You only have ${currencySymbol}${balance.toLocaleString()} available.`
+        if (!savingsTarget) {
+            setSavingsMessage(
+                "Create a savings target first."
             );
             return;
         }
 
-        if (amountToSave > savingsRemaining) {
-            alert(
-                `You only need ${currencySymbol}${savingsRemaining.toLocaleString()} to reach your target.`
+        if (amount > balance) {
+            setSavingsMessage(
+                "You do not have enough balance for this saving."
             );
             return;
         }
 
-        const newSavings = {
-            id: Date.now(),
-            amount: amountToSave,
-            date: new Date()
-                .toISOString()
-                .split("T")[0],
-        };
+        if (amount > savingsRemaining) {
+            setSavingsMessage(
+                "That amount is more than the remaining target."
+            );
+            return;
+        }
 
-        setSavingsTarget({
-            ...savingsTarget,
-            saved:
-                savingsTarget.saved +
-                amountToSave,
-            history: [
-                newSavings,
-                ...(savingsTarget.history || []),
-            ],
-        });
+        const transactionId = Date.now();
 
         const savingsTransaction = {
-            id: Date.now() + 1,
-            amount: amountToSave,
+            id: transactionId,
+            amount,
             type: "out",
             category: "Savings",
+            date: getToday(),
             note: `Savings for ${savingsTarget.name}`,
-            date: new Date()
-                .toISOString()
-                .split("T")[0],
         };
 
-        setTransactions([
+        const savingsRecord = {
+            id: transactionId,
+            transactionId,
+            amount,
+            date: getToday(),
+        };
+
+        setTransactions((current) => [
             savingsTransaction,
-            ...transactions,
+            ...current,
         ]);
 
-        window.dispatchEvent(
-            new Event("transactionsUpdated")
-        );
+        setSavingsTarget((current) => ({
+            ...current,
+            history: [
+                ...(current.history || []),
+                savingsRecord,
+            ],
+        }));
 
         setSavingsAmount("");
-    }
 
-    // =========================
-    // DELETE SAVINGS HISTORY
-    // =========================
-
-    function deleteSavingsHistory(id) {
-        const savingsToRemove =
-            (savingsTarget.history || []).find(
-                (item) => item.id === id
-            );
-
-        if (!savingsToRemove) {
-            return;
-        }
-
-        const confirmDelete = window.confirm(
-            `Delete this savings entry of ${currencySymbol}${savingsToRemove.amount.toLocaleString()}?`
+        setSavingsMessage(
+            "Savings added successfully."
         );
 
-        if (!confirmDelete) {
-            return;
-        }
-
-        const updatedHistory =
-            savingsTarget.history.filter(
-                (item) => item.id !== id
-            );
-
-        setSavingsTarget({
-            ...savingsTarget,
-            saved: Math.max(
-                savingsTarget.saved -
-                savingsToRemove.amount,
-                0
-            ),
-            history: updatedHistory,
-        });
-
-        const updatedTransactions =
-            transactions.filter(
-                (item) =>
-                    !(
-                        item.category === "Savings" &&
-                        item.amount ===
-                        savingsToRemove.amount &&
-                        item.date ===
-                        savingsToRemove.date
-                    )
-            );
-
-        setTransactions(updatedTransactions);
+        setTimeout(() => {
+            setSavingsMessage("");
+        }, 2500);
     }
 
-    // =========================
-    // CASH FLOW
-    // =========================
+    /* =========================
+       DELETE SAVINGS RECORD
+    ========================= */
 
-    const cashFlow = [
-        { day: "Day 1", amount: 0 },
-        { day: "Day 2", amount: 0 },
-        { day: "Day 3", amount: 0 },
-        { day: "Day 4", amount: 0 },
-        { day: "Day 5", amount: 0 },
-        { day: "Day 6", amount: 0 },
-        { day: "Day 7", amount: 0 },
-        { day: "Day 8", amount: 0 },
-        { day: "Day 9", amount: 0 },
-        { day: "Day 10", amount: 0 },
-        { day: "Day 11", amount: 0 },
-        { day: "Day 12", amount: 0 },
-    ];
+    function handleDeleteSavings(id) {
+        const record = savingsHistory.find(
+            (item) => item.id === id
+        );
 
-    // =========================
-    // CSV EXPORT
-    // =========================
+        if (!record) return;
+
+        const confirmed = window.confirm(
+            "Delete this savings record?"
+        );
+
+        if (!confirmed) return;
+
+        setSavingsTarget((current) => ({
+            ...current,
+            history: current.history.filter(
+                (item) => item.id !== id
+            ),
+        }));
+
+        setTransactions((current) =>
+            current.filter(
+                (transaction) =>
+                    transaction.id !==
+                    record.transactionId
+            )
+        );
+    }
+
+    /* =========================
+       DELETE SAVINGS TARGET
+    ========================= */
+
+    function handleDeleteSavingsTarget() {
+        const confirmed = window.confirm(
+            "Delete this savings target?"
+        );
+
+        if (!confirmed) return;
+
+        setSavingsTarget(null);
+        setSavingsMessage("");
+    }
+
+    /* =========================
+       30 DAY CASH FLOW
+    ========================= */
+
+    const cashFlow = [];
+
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date();
+
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() - i);
+
+        const year = date.getFullYear();
+        const month = String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+        const day = String(
+            date.getDate()
+        ).padStart(2, "0");
+
+        const dateKey =
+            `${year}-${month}-${day}`;
+
+        const amount = transactions
+            .filter(
+                (transaction) =>
+                    transaction.date === dateKey
+            )
+            .reduce(
+                (total, transaction) => {
+                    const value =
+                        Number(transaction.amount) || 0;
+
+                    return transaction.type === "in"
+                        ? total + value
+                        : total - value;
+                },
+                0
+            );
+
+        cashFlow.push({
+            date: dateKey,
+            label: date.toLocaleDateString(
+                "en-NG",
+                {
+                    day: "numeric",
+                    month: "short",
+                }
+            ),
+            amount,
+        });
+    }
+
+    const maximumCashFlow = Math.max(
+        ...cashFlow.map((item) =>
+            Math.abs(item.amount)
+        ),
+        1
+    );
+
+    /* =========================
+       CSV EXPORT
+    ========================= */
+
+    function escapeCSV(value) {
+        return `"${String(value ?? "").replace(
+            /"/g,
+            '""'
+        )}"`;
+    }
 
     function exportCSV() {
         if (transactions.length === 0) {
-            alert(
-                "There are no transactions to export."
-            );
+            alert("There are no transactions to export.");
             return;
         }
 
@@ -410,24 +547,30 @@ function Dashboard() {
             "Note",
         ];
 
-        const rows = transactions.map((item) => [
-            item.date,
-            item.type,
-            item.category,
-            item.amount,
-            item.note,
-        ]);
+        const rows = transactions.map(
+            (transaction) => [
+                transaction.date,
+                transaction.type,
+                transaction.category,
+                transaction.amount,
+                transaction.note || "",
+            ]
+        );
 
-        const csvContent = [
+        const csv = [
             headers,
             ...rows,
         ]
-            .map((row) => row.join(","))
+            .map((row) =>
+                row.map(escapeCSV).join(",")
+            )
             .join("\n");
 
         const blob = new Blob(
-            [csvContent],
-            { type: "text/csv" }
+            ["\uFEFF" + csv],
+            {
+                type: "text/csv;charset=utf-8;",
+            }
         );
 
         const url =
@@ -438,16 +581,16 @@ function Dashboard() {
 
         link.href = url;
         link.download =
-            "transactions.csv";
+            "bookkeeping-transactions.csv";
 
         link.click();
 
         URL.revokeObjectURL(url);
     }
 
-    // =========================
-    // SIGN OUT
-    // =========================
+    /* =========================
+       SIGN OUT
+    ========================= */
 
     function handleSignOut() {
         localStorage.removeItem(
@@ -458,838 +601,817 @@ function Dashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div className="min-h-screen bg-gray-50">
 
             {/* =========================
                 SIDEBAR
             ========================= */}
 
-            <aside className="fixed left-0 top-0 h-screen w-64 bg-white shadow-md p-6">
+            <aside className="fixed left-0 top-0 z-30 hidden h-screen w-64 bg-gray-900 text-white lg:block">
 
-                <h1 className="text-2xl font-bold text-blue-600 mb-8">
-                    Bookkeeping
-                </h1>
+                <div className="flex h-full flex-col">
 
-                <nav className="space-y-4">
+                    <div className="border-b border-gray-800 px-6 py-6">
+                        <Link
+                            to="/dashboard"
+                            className="text-2xl font-bold"
+                        >
+                            Bookkeeping
+                        </Link>
 
-                    <Link
-                        to="/dashboard"
-                        className="block font-semibold text-blue-600"
-                    >
-                        📊 Dashboard
-                    </Link>
+                        <p className="mt-1 text-sm text-gray-400">
+                            Simple business finance
+                        </p>
+                    </div>
 
-                    <Link
-                        to="/transactions"
-                        className="block text-gray-600 hover:text-blue-600"
-                    >
-                        💳 Transactions
-                    </Link>
+                    <nav className="flex-1 space-y-2 px-4 py-6">
 
-                    <Link
-                        to="/dashboard"
-                        className="block text-gray-600 hover:text-blue-600"
-                    >
-                        🎯 Savings Target
-                    </Link>
+                        <Link
+                            to="/dashboard"
+                            className="block rounded-lg bg-blue-600 px-4 py-3 font-medium"
+                        >
+                            Dashboard
+                        </Link>
 
-                    <Link
-                        to="/categories"
-                        className="block text-gray-600 hover:text-blue-600"
-                    >
-                        📁 Categories
-                    </Link>
+                        <Link
+                            to="/transactions"
+                            className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
+                        >
+                            Transactions
+                        </Link>
 
-                    <Link
-                        to="/reports"
-                        className="block text-gray-600 hover:text-blue-600"
-                    >
-                        📈 Reports
-                    </Link>
+                        <a
+                            href="#savings-target"
+                            className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
+                        >
+                            Savings Target
+                        </a>
 
-                    <Link
-                        to="/settings"
-                        className="block text-gray-600 hover:text-blue-600"
-                    >
-                        ⚙️ Settings
-                    </Link>
+                        <Link
+                            to="/categories"
+                            className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
+                        >
+                            Categories
+                        </Link>
 
-                    <button
-                        onClick={handleSignOut}
-                        className="block text-red-600 hover:text-red-700 font-semibold pt-4"
-                    >
-                        🚪 Sign Out
-                    </button>
+                        <Link
+                            to="/reports"
+                            className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
+                        >
+                            Reports
+                        </Link>
 
-                </nav>
+                        <Link
+                            to="/invoices"
+                            className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
+                        >
+                            Invoices
+                        </Link>
 
+                        <Link
+                            to="/settings"
+                            className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
+                        >
+                            Settings
+                        </Link>
+
+                    </nav>
+
+                    <div className="border-t border-gray-800 p-4">
+                        <button
+                            onClick={handleSignOut}
+                            className="w-full rounded-lg px-4 py-3 text-left text-red-400 transition hover:bg-gray-800"
+                        >
+                            Sign Out
+                        </button>
+                    </div>
+
+                </div>
             </aside>
 
             {/* =========================
-                MAIN
+                MAIN CONTENT
             ========================= */}
 
-            <main className="ml-64 p-8">
+            <main className="lg:ml-64">
 
                 {/* HEADER */}
 
-                <div className="flex justify-between items-center mb-8">
+                <header className="border-b border-gray-200 bg-white px-6 py-5 md:px-8">
 
-                    <div>
-                        <h2 className="text-3xl font-bold text-gray-800">
-                            Dashboard
-                        </h2>
-
-                        <p className="text-gray-500">
-                            Welcome,{" "}
-                            <span className="font-semibold text-gray-700">
-                                {user?.name || businessName}
-                            </span>
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={exportCSV}
-                        className="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700"
-                    >
-                        Export CSV
-                    </button>
-
-                </div>
-
-                {/* =========================
-                    SUMMARY
-                ========================= */}
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-                    <div className="bg-white rounded-xl shadow p-6">
-                        <p className="text-gray-500">
-                            Current Balance
-                        </p>
-
-                        <h3 className="text-2xl font-bold mt-2">
-                            {currencySymbol}
-                            {balance.toLocaleString()}
-                        </h3>
-                    </div>
-
-                    <div className="bg-white rounded-xl shadow p-6">
-                        <p className="text-gray-500">
-                            Money In
-                        </p>
-
-                        <h3 className="text-2xl font-bold text-green-600 mt-2">
-                            {currencySymbol}
-                            {moneyIn.toLocaleString()}
-                        </h3>
-                    </div>
-
-                    <div className="bg-white rounded-xl shadow p-6">
-                        <p className="text-gray-500">
-                            Money Out
-                        </p>
-
-                        <h3 className="text-2xl font-bold text-red-600 mt-2">
-                            {currencySymbol}
-                            {moneyOut.toLocaleString()}
-                        </h3>
-                    </div>
-
-                </div>
-
-                {/* =========================
-                    SAVINGS TARGET
-                ========================= */}
-
-                <div className="bg-white rounded-xl shadow p-6 mb-8">
-
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
                         <div>
-                            <h2 className="text-2xl font-bold">
-                                🎯 Savings Target
-                            </h2>
-
-                            <p className="text-gray-500">
-                                Set and track your savings goal.
+                            <p className="text-sm text-gray-500">
+                                Welcome back
                             </p>
+
+                            <h1 className="text-2xl font-bold text-gray-900">
+                                {businessName}
+                            </h1>
                         </div>
 
-                        {savingsTarget.name && (
-                            <button
-                                onClick={deleteSavingsTarget}
-                                className="text-red-500 hover:text-red-700"
-                            >
-                                Delete Target
-                            </button>
-                        )}
+                        <button
+                            onClick={exportCSV}
+                            className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
+                        >
+                            Export CSV
+                        </button>
 
                     </div>
 
-                    {!savingsTarget.name ? (
+                </header>
 
-                        <form
-                            onSubmit={createSavingsTarget}
-                            className="space-y-4"
-                        >
+                <div className="space-y-8 p-6 md:p-8">
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* =========================
+                        SUMMARY CARDS
+                    ========================= */}
+
+                    <section>
+
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+
+                            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                                <p className="text-sm text-gray-500">
+                                    Starting Balance
+                                </p>
+
+                                <h2 className="mt-3 text-2xl font-bold text-gray-900">
+                                    {currencySymbol}
+                                    {formatNumber(startingBalance)}
+                                </h2>
+                            </div>
+
+                            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                                <p className="text-sm text-gray-500">
+                                    Money In
+                                </p>
+
+                                <h2 className="mt-3 text-2xl font-bold text-green-600">
+                                    {currencySymbol}
+                                    {formatNumber(moneyIn)}
+                                </h2>
+                            </div>
+
+                            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                                <p className="text-sm text-gray-500">
+                                    Money Out
+                                </p>
+
+                                <h2 className="mt-3 text-2xl font-bold text-red-600">
+                                    {currencySymbol}
+                                    {formatNumber(moneyOut)}
+                                </h2>
+                            </div>
+
+                            <div className="rounded-2xl bg-blue-600 p-6 shadow-sm">
+                                <p className="text-sm text-blue-100">
+                                    Current Balance
+                                </p>
+
+                                <h2 className="mt-3 text-2xl font-bold text-white">
+                                    {currencySymbol}
+                                    {formatNumber(balance)}
+                                </h2>
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                    {/* =========================
+                        SAVINGS TARGET
+                    ========================= */}
+
+                    <section
+                        id="savings-target"
+                        className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:p-8"
+                    >
+
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+                            <div>
+                                <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
+                                    Savings
+                                </p>
+
+                                <h2 className="mt-1 text-2xl font-bold text-gray-900">
+                                    Savings Target
+                                </h2>
+                            </div>
+
+                            {savingsTarget && (
+                                <button
+                                    onClick={handleDeleteSavingsTarget}
+                                    className="text-sm font-semibold text-red-600 hover:text-red-700"
+                                >
+                                    Delete Target
+                                </button>
+                            )}
+
+                        </div>
+
+                        {!savingsTarget ? (
+
+                            <form
+                                onSubmit={handleCreateSavingsTarget}
+                                className="mt-6 grid gap-4 md:grid-cols-2"
+                            >
 
                                 <input
                                     type="text"
-                                    placeholder="Target Name"
                                     value={targetName}
                                     onChange={(e) =>
-                                        setTargetName(
-                                            e.target.value
-                                        )
+                                        setTargetName(e.target.value)
                                     }
-                                    className="border rounded-lg p-3"
+                                    placeholder="Target name"
+                                    className="rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
                                 />
 
                                 <input
                                     type="number"
-                                    placeholder="Target Amount"
                                     value={targetAmount}
                                     onChange={(e) =>
-                                        setTargetAmount(
-                                            e.target.value
-                                        )
+                                        setTargetAmount(e.target.value)
                                     }
-                                    className="border rounded-lg p-3"
+                                    placeholder="Target amount"
+                                    className="rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                                />
+
+                                <input
+                                    type="number"
+                                    value={targetSaved}
+                                    onChange={(e) =>
+                                        setTargetSaved(e.target.value)
+                                    }
+                                    placeholder="Already saved"
+                                    className="rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
                                 />
 
                                 <input
                                     type="date"
                                     value={targetDate}
                                     onChange={(e) =>
-                                        setTargetDate(
-                                            e.target.value
-                                        )
+                                        setTargetDate(e.target.value)
                                     }
-                                    className="border rounded-lg p-3"
+                                    className="rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
                                 />
 
-                            </div>
+                                <button
+                                    type="submit"
+                                    className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700 md:col-span-2"
+                                >
+                                    Create Savings Target
+                                </button>
 
-                            <button
-                                type="submit"
-                                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
-                            >
-                                Create Savings Target
-                            </button>
+                            </form>
 
-                        </form>
+                        ) : (
 
-                    ) : (
+                            <div className="mt-6">
 
-                        <>
+                                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
 
-                            {/* TARGET DETAILS */}
+                                    <div>
+                                        <h3 className="text-xl font-bold text-gray-900">
+                                            {savingsTarget.name}
+                                        </h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                        <p className="mt-1 text-sm text-gray-500">
+                                            Target:{" "}
+                                            {currencySymbol}
+                                            {formatNumber(targetAmountNumber)}
+                                        </p>
+                                    </div>
 
-                                <div>
-                                    <p className="text-gray-500 text-sm">
-                                        Target Name
-                                    </p>
-
-                                    <p className="font-bold text-lg">
-                                        {savingsTarget.name}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-gray-500 text-sm">
-                                        Target Amount
-                                    </p>
-
-                                    <p className="font-bold text-lg">
-                                        {currencySymbol}
-                                        {savingsTarget.target.toLocaleString()}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-gray-500 text-sm">
-                                        Target Date
-                                    </p>
-
-                                    <p className="font-bold text-lg">
-                                        {savingsTarget.date ||
-                                            "No date set"}
-                                    </p>
-                                </div>
-
-                            </div>
-
-                            {/* PROGRESS */}
-
-                            <div className="mb-6">
-
-                                <div className="flex justify-between mb-2">
-
-                                    <p className="font-semibold">
-                                        Savings Progress
-                                    </p>
-
-                                    <p
-                                        className={
-                                            savingsCompleted
-                                                ? "font-bold text-green-600"
-                                                : "font-bold text-blue-600"
-                                        }
-                                    >
-                                        {savingsCompleted
-                                            ? "Target Reached 🎉"
-                                            : `${savingsPercentage.toFixed(
-                                                0
-                                            )}%`}
+                                    <p className="text-lg font-bold text-blue-600">
+                                        {Math.round(savingsPercentage)}%
                                     </p>
 
                                 </div>
 
-                                <div className="w-full bg-gray-200 rounded-full h-4">
-
+                                <div className="mt-5 h-3 overflow-hidden rounded-full bg-gray-200">
                                     <div
-                                        className={
-                                            savingsCompleted
-                                                ? "bg-green-500 h-4 rounded-full transition-all"
-                                                : "bg-blue-600 h-4 rounded-full transition-all"
-                                        }
+                                        className="h-full rounded-full bg-blue-600 transition-all"
                                         style={{
                                             width: `${savingsPercentage}%`,
                                         }}
                                     />
+                                </div>
+
+                                <div className="mt-4 grid gap-4 sm:grid-cols-3">
+
+                                    <div className="rounded-xl bg-blue-50 p-4">
+                                        <p className="text-sm text-gray-500">
+                                            Saved
+                                        </p>
+
+                                        <p className="mt-1 font-bold text-blue-600">
+                                            {currencySymbol}
+                                            {formatNumber(totalSaved)}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-xl bg-gray-50 p-4">
+                                        <p className="text-sm text-gray-500">
+                                            Remaining
+                                        </p>
+
+                                        <p className="mt-1 font-bold text-gray-900">
+                                            {currencySymbol}
+                                            {formatNumber(savingsRemaining)}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-xl bg-green-50 p-4">
+                                        <p className="text-sm text-gray-500">
+                                            Status
+                                        </p>
+
+                                        <p className="mt-1 font-bold text-green-600">
+                                            {savingsCompleted
+                                                ? "Completed"
+                                                : "In Progress"}
+                                        </p>
+                                    </div>
 
                                 </div>
 
-                            </div>
-
-                            {/* SAVINGS SUMMARY */}
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-
-                                <div className="border rounded-xl p-4">
-                                    <p className="text-gray-500">
-                                        Saved
-                                    </p>
-
-                                    <p className="text-xl font-bold text-green-600">
-                                        {currencySymbol}
-                                        {savingsTarget.saved.toLocaleString()}
-                                    </p>
-                                </div>
-
-                                <div className="border rounded-xl p-4">
-                                    <p className="text-gray-500">
-                                        Target
-                                    </p>
-
-                                    <p className="text-xl font-bold">
-                                        {currencySymbol}
-                                        {savingsTarget.target.toLocaleString()}
-                                    </p>
-                                </div>
-
-                                <div className="border rounded-xl p-4">
-                                    <p className="text-gray-500">
-                                        Remaining
-                                    </p>
-
-                                    <p className="text-xl font-bold text-blue-600">
-                                        {currencySymbol}
-                                        {savingsRemaining.toLocaleString()}
-                                    </p>
-                                </div>
-
-                            </div>
-
-                            {/* ADD SAVINGS */}
-
-                            {!savingsCompleted && (
-
-                                <form
-                                    onSubmit={addSavings}
-                                    className="mt-6 flex flex-col md:flex-row gap-3"
-                                >
-
-                                    <input
-                                        type="number"
-                                        placeholder="Enter amount to save"
-                                        value={savingsAmount}
-                                        onChange={(e) =>
-                                            setSavingsAmount(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="border rounded-lg p-3 flex-1"
-                                    />
-
-                                    <button
-                                        type="submit"
-                                        className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700"
+                                {!savingsCompleted && (
+                                    <form
+                                        onSubmit={handleAddSavings}
+                                        className="mt-6 flex flex-col gap-3 sm:flex-row"
                                     >
-                                        Add Savings
-                                    </button>
 
-                                </form>
+                                        <input
+                                            type="number"
+                                            value={savingsAmount}
+                                            onChange={(e) =>
+                                                setSavingsAmount(e.target.value)
+                                            }
+                                            placeholder="Amount to save"
+                                            className="flex-1 rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                                        />
 
-                            )}
+                                        <button
+                                            type="submit"
+                                            className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+                                        >
+                                            Add Savings
+                                        </button>
 
-                            {/* COMPLETED */}
+                                    </form>
+                                )}
 
-                            {savingsCompleted && (
-
-                                <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
-
-                                    <p className="text-green-700 font-semibold">
-                                        🎉 Congratulations! You have reached your savings target.
+                                {savingsMessage && (
+                                    <p className="mt-4 text-sm font-medium text-blue-600">
+                                        {savingsMessage}
                                     </p>
+                                )}
 
-                                    <p className="text-sm text-green-600 mt-1">
-                                        Your target of{" "}
-                                        {currencySymbol}
-                                        {savingsTarget.target.toLocaleString()}{" "}
-                                        has been completed.
-                                    </p>
-
-                                </div>
-
-                            )}
-
-                            {/* SAVINGS HISTORY */}
-
-                            {savingsTarget.history &&
-                                savingsTarget.history.length > 0 && (
-
+                                {savingsHistory.length > 0 && (
                                     <div className="mt-8">
 
-                                        <h3 className="text-lg font-bold mb-4">
+                                        <h3 className="font-bold text-gray-900">
                                             Savings History
                                         </h3>
 
-                                        <div className="overflow-x-auto">
-
-                                            <table className="w-full text-left">
-
-                                                <thead>
-                                                    <tr className="border-b">
-
-                                                        <th className="py-3">
-                                                            Date
-                                                        </th>
-
-                                                        <th className="py-3">
-                                                            Amount
-                                                        </th>
-
-                                                        <th className="py-3">
-                                                            Action
-                                                        </th>
-
-                                                    </tr>
-                                                </thead>
-
-                                                <tbody>
-
-                                                    {savingsTarget.history.map(
-                                                        (item) => (
-
-                                                            <tr
-                                                                key={
-                                                                    item.id
-                                                                }
-                                                                className="border-b"
-                                                            >
-
-                                                                <td className="py-3">
-                                                                    {
-                                                                        item.date
-                                                                    }
-                                                                </td>
-
-                                                                <td className="py-3 font-semibold text-green-600">
-                                                                    {
-                                                                        currencySymbol
-                                                                    }
-                                                                    {item.amount.toLocaleString()}
-                                                                </td>
-
-                                                                <td className="py-3">
-
-                                                                    <button
-                                                                        onClick={() =>
-                                                                            deleteSavingsHistory(
-                                                                                item.id
-                                                                            )
-                                                                        }
-                                                                        className="text-red-500 hover:text-red-700"
-                                                                    >
-                                                                        Delete
-                                                                    </button>
-
-                                                                </td>
-
-                                                            </tr>
-
-                                                        )
-                                                    )}
-
-                                                </tbody>
-
-                                            </table>
-
-                                        </div>
-
-                                    </div>
-
-                                )}
-
-                        </>
-
-                    )}
-
-                </div>
-
-                {/* =========================
-                    CASH FLOW
-                ========================= */}
-
-                <div className="bg-white rounded-xl shadow p-6 mb-8">
-
-                    <h2 className="text-xl font-bold mb-6">
-                        30 Day Cash Flow
-                    </h2>
-
-                    <div className="flex items-end gap-3 h-64">
-
-                        {cashFlow.map((item, index) => (
-
-                            <div
-                                key={index}
-                                className="flex-1 flex flex-col items-center justify-end h-full"
-                            >
-
-                                <div
-                                    className="bg-blue-600 w-full rounded-t-lg"
-                                    style={{
-                                        height: `${Math.max(
-                                            item.amount,
-                                            5
-                                        )}%`,
-                                    }}
-                                />
-
-                                <span className="text-xs text-gray-500 mt-2">
-                                    {item.day}
-                                </span>
-
-                            </div>
-
-                        ))}
-
-                    </div>
-
-                </div>
-
-                {/* =========================
-                    ORIGINAL ADD TRANSACTION
-                ========================= */}
-
-                <div className="bg-white rounded-xl shadow p-6 mb-8">
-
-                    <h2 className="text-xl font-bold mb-6">
-                        Add Transaction
-                    </h2>
-
-                    <form
-                        onSubmit={addTransaction}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                    >
-
-                        <div>
-                            <label className="block text-sm font-medium mb-2">
-                                Amount
-                            </label>
-
-                            <input
-                                type="number"
-                                value={amount}
-                                onChange={(e) =>
-                                    setAmount(
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Enter amount"
-                                className="w-full border rounded-lg p-3"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-2">
-                                Transaction Type
-                            </label>
-
-                            <select
-                                value={type}
-                                onChange={(e) =>
-                                    setType(
-                                        e.target.value
-                                    )
-                                }
-                                className="w-full border rounded-lg p-3"
-                            >
-
-                                <option value="in">
-                                    Money In
-                                </option>
-
-                                <option value="out">
-                                    Money Out
-                                </option>
-
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-2">
-                                Category
-                            </label>
-
-                            <select
-                                value={category}
-                                onChange={(e) =>
-                                    setCategory(
-                                        e.target.value
-                                    )
-                                }
-                                className="w-full border rounded-lg p-3"
-                            >
-
-                                <option value="">
-                                    Select Category
-                                </option>
-
-                                <option value="Sales">
-                                    Sales
-                                </option>
-
-                                <option value="Stock/Inventory">
-                                    Stock/Inventory
-                                </option>
-
-                                <option value="Rent">
-                                    Rent
-                                </option>
-
-                                <option value="Transport">
-                                    Transport
-                                </option>
-
-                                <option value="Utilities">
-                                    Utilities
-                                </option>
-
-                                <option value="Salaries">
-                                    Salaries
-                                </option>
-
-                                <option value="Other">
-                                    Other
-                                </option>
-
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-2">
-                                Note
-                            </label>
-
-                            <input
-                                type="text"
-                                value={note}
-                                onChange={(e) =>
-                                    setNote(
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Optional note"
-                                className="w-full border rounded-lg p-3"
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="md:col-span-2 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
-                        >
-                            + Save Transaction
-                        </button>
-
-                    </form>
-
-                </div>
-
-                {/* =========================
-                    RECENT TRANSACTIONS
-                ========================= */}
-
-                <div className="bg-white rounded-xl shadow p-6">
-
-                    <div className="flex justify-between items-center mb-6">
-
-                        <h2 className="text-xl font-bold">
-                            Recent Transactions
-                        </h2>
-
-                        <Link
-                            to="/transactions"
-                            className="text-blue-600 hover:underline"
-                        >
-                            View All
-                        </Link>
-
-                    </div>
-
-                    {transactions.length === 0 ? (
-
-                        <p className="text-gray-500">
-                            No transactions yet.
-                        </p>
-
-                    ) : (
-
-                        <div className="overflow-x-auto">
-
-                            <table className="w-full text-left">
-
-                                <thead>
-
-                                    <tr className="border-b">
-
-                                        <th className="py-3">
-                                            Date
-                                        </th>
-
-                                        <th className="py-3">
-                                            Category
-                                        </th>
-
-                                        <th className="py-3">
-                                            Note
-                                        </th>
-
-                                        <th className="py-3">
-                                            Type
-                                        </th>
-
-                                        <th className="py-3">
-                                            Amount
-                                        </th>
-
-                                        <th className="py-3">
-                                            Action
-                                        </th>
-
-                                    </tr>
-
-                                </thead>
-
-                                <tbody>
-
-                                    {transactions
-                                        .slice(0, 10)
-                                        .map(
-                                            (item) => (
-
-                                                <tr
-                                                    key={
-                                                        item.id
-                                                    }
-                                                    className="border-b"
-                                                >
-
-                                                    <td className="py-3">
-                                                        {
-                                                            item.date
-                                                        }
-                                                    </td>
-
-                                                    <td className="py-3">
-                                                        {
-                                                            item.category
-                                                        }
-                                                    </td>
-
-                                                    <td className="py-3">
-                                                        {
-                                                            item.note ||
-                                                            "-"
-                                                        }
-                                                    </td>
-
-                                                    <td
-                                                        className={
-                                                            item.type ===
-                                                                "in"
-                                                                ? "py-3 text-green-600"
-                                                                : "py-3 text-red-600"
-                                                        }
+                                        <div className="mt-4 space-y-3">
+
+                                            {savingsHistory.map(
+                                                (item) => (
+                                                    <div
+                                                        key={item.id}
+                                                        className="flex items-center justify-between rounded-lg bg-gray-50 p-4"
                                                     >
-                                                        {item.type ===
-                                                            "in"
-                                                            ? "Money In"
-                                                            : "Money Out"}
-                                                    </td>
 
-                                                    <td
-                                                        className={`py-3 font-semibold ${item.type ===
-                                                                "in"
-                                                                ? "text-green-600"
-                                                                : "text-red-600"
-                                                            }`}
-                                                    >
-                                                        {item.type ===
-                                                            "in"
-                                                            ? "+"
-                                                            : "-"}
-                                                        {
-                                                            currencySymbol
-                                                        }
-                                                        {Number(
-                                                            item.amount
-                                                        ).toLocaleString()}
-                                                    </td>
+                                                        <div>
+                                                            <p className="font-semibold text-gray-900">
+                                                                {currencySymbol}
+                                                                {formatNumber(
+                                                                    item.amount
+                                                                )}
+                                                            </p>
 
-                                                    <td className="py-3">
+                                                            <p className="text-sm text-gray-500">
+                                                                {item.date}
+                                                            </p>
+                                                        </div>
 
                                                         <button
                                                             onClick={() =>
-                                                                deleteTransaction(
+                                                                handleDeleteSavings(
                                                                     item.id
                                                                 )
                                                             }
-                                                            className="text-red-500 hover:text-red-700"
+                                                            className="text-sm font-semibold text-red-600 hover:text-red-700"
                                                         >
                                                             Delete
                                                         </button>
 
-                                                    </td>
+                                                    </div>
+                                                )
+                                            )}
 
-                                                </tr>
+                                        </div>
 
-                                            )
-                                        )}
+                                    </div>
+                                )}
 
-                                </tbody>
+                            </div>
 
-                            </table>
+                        )}
+
+                    </section>
+
+                    {/* =========================
+                        30 DAY CASH FLOW
+                    ========================= */}
+
+                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+
+                        <div>
+                            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
+                                Overview
+                            </p>
+
+                            <h2 className="mt-1 text-2xl font-bold text-gray-900">
+                                30 Day Cash Flow
+                            </h2>
+
+                            <p className="mt-2 text-sm text-gray-500">
+                                Your daily net cash flow for the last 30 days.
+                            </p>
+                        </div>
+
+                        <div className="mt-8 flex h-64 items-end gap-1 overflow-hidden">
+
+                            {cashFlow.map(
+                                (item, index) => {
+                                    const percentage =
+                                        Math.abs(item.amount) /
+                                        maximumCashFlow *
+                                        100;
+
+                                    const height =
+                                        item.amount === 0
+                                            ? 4
+                                            : Math.max(
+                                                percentage,
+                                                8
+                                            );
+
+                                    const isPositive =
+                                        item.amount >= 0;
+
+                                    return (
+                                        <div
+                                            key={item.date}
+                                            className="group flex h-full flex-1 flex-col justify-end"
+                                            title={`${item.label}: ${currencySymbol}${formatNumber(
+                                                item.amount
+                                            )}`}
+                                        >
+
+                                            <div
+                                                className={`w-full rounded-t transition ${isPositive
+                                                        ? "bg-blue-500 hover:bg-blue-600"
+                                                        : "bg-red-400 hover:bg-red-500"
+                                                    }`}
+                                                style={{
+                                                    height: `${height}%`,
+                                                }}
+                                            />
+
+                                            {(
+                                                index === 0 ||
+                                                index % 5 === 0 ||
+                                                index === 29
+                                            ) && (
+                                                    <span className="mt-2 text-center text-[10px] text-gray-400">
+                                                        {item.label}
+                                                    </span>
+                                                )}
+
+                                        </div>
+                                    );
+                                }
+                            )}
 
                         </div>
 
-                    )}
+                    </section>
+
+                    {/* =========================
+                        ADD TRANSACTION
+                    ========================= */}
+
+                    <section
+                        id="add-transaction"
+                        className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:p-8"
+                    >
+
+                        <div>
+                            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
+                                New Entry
+                            </p>
+
+                            <h2 className="mt-1 text-2xl font-bold text-gray-900">
+                                Add Transaction
+                            </h2>
+                        </div>
+
+                        {transactionMessage && (
+                            <div className="mt-5 rounded-lg bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700">
+                                {transactionMessage}
+                            </div>
+                        )}
+
+                        <form
+                            onSubmit={handleAddTransaction}
+                            className="mt-6 grid gap-5 md:grid-cols-2"
+                        >
+
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">
+                                    Amount
+                                </label>
+
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={transactionAmount}
+                                    onChange={(e) =>
+                                        setTransactionAmount(e.target.value)
+                                    }
+                                    placeholder="Enter amount"
+                                    required
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">
+                                    Type
+                                </label>
+
+                                <select
+                                    value={transactionType}
+                                    onChange={(e) =>
+                                        setTransactionType(e.target.value)
+                                    }
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                                >
+                                    <option value="in">
+                                        Money In
+                                    </option>
+
+                                    <option value="out">
+                                        Money Out
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">
+                                    Category
+                                </label>
+
+                                <select
+                                    value={transactionCategory}
+                                    onChange={(e) =>
+                                        setTransactionCategory(e.target.value)
+                                    }
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                                >
+                                    {CATEGORIES.map(
+                                        (category) => (
+                                            <option
+                                                key={category}
+                                                value={category}
+                                            >
+                                                {category}
+                                            </option>
+                                        )
+                                    )}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">
+                                    Date
+                                </label>
+
+                                <input
+                                    type="date"
+                                    value={transactionDate}
+                                    onChange={(e) =>
+                                        setTransactionDate(e.target.value)
+                                    }
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                                />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="mb-2 block text-sm font-medium text-gray-700">
+                                    Note
+                                </label>
+
+                                <textarea
+                                    value={transactionNote}
+                                    onChange={(e) =>
+                                        setTransactionNote(e.target.value)
+                                    }
+                                    placeholder="Optional note"
+                                    rows="3"
+                                    className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 md:col-span-2"
+                            >
+                                Add Transaction
+                            </button>
+
+                        </form>
+
+                    </section>
+
+                    {/* =========================
+                        RECENT TRANSACTIONS
+                    ========================= */}
+
+                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                            <div>
+                                <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
+                                    Activity
+                                </p>
+
+                                <h2 className="mt-1 text-2xl font-bold text-gray-900">
+                                    Recent Transactions
+                                </h2>
+                            </div>
+
+                            <Link
+                                to="/transactions"
+                                className="font-semibold text-blue-600 hover:text-blue-700"
+                            >
+                                View All
+                            </Link>
+
+                        </div>
+
+                        {transactions.length === 0 ? (
+
+                            <div className="mt-8 rounded-xl bg-gray-50 p-8 text-center">
+                                <p className="font-medium text-gray-700">
+                                    No transactions yet.
+                                </p>
+
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Add your first transaction above.
+                                </p>
+                            </div>
+
+                        ) : (
+
+                            <div className="mt-6 overflow-x-auto">
+
+                                <table className="w-full min-w-[700px]">
+
+                                    <thead>
+                                        <tr className="border-b border-gray-200 text-left text-sm text-gray-500">
+
+                                            <th className="px-4 py-3">
+                                                Date
+                                            </th>
+
+                                            <th className="px-4 py-3">
+                                                Category
+                                            </th>
+
+                                            <th className="px-4 py-3">
+                                                Note
+                                            </th>
+
+                                            <th className="px-4 py-3">
+                                                Type
+                                            </th>
+
+                                            <th className="px-4 py-3 text-right">
+                                                Amount
+                                            </th>
+
+                                            <th className="px-4 py-3">
+                                            </th>
+
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+
+                                        {transactions
+                                            .slice(0, 10)
+                                            .map(
+                                                (
+                                                    transaction
+                                                ) => (
+                                                    <tr
+                                                        key={
+                                                            transaction.id
+                                                        }
+                                                        className="border-b border-gray-100 last:border-0"
+                                                    >
+
+                                                        <td className="px-4 py-4 text-sm text-gray-600">
+                                                            {
+                                                                transaction.date
+                                                            }
+                                                        </td>
+
+                                                        <td className="px-4 py-4">
+                                                            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                                                                {
+                                                                    transaction.category
+                                                                }
+                                                            </span>
+                                                        </td>
+
+                                                        <td className="max-w-[200px] truncate px-4 py-4 text-sm text-gray-600">
+                                                            {
+                                                                transaction.note ||
+                                                                "-"
+                                                            }
+                                                        </td>
+
+                                                        <td className="px-4 py-4">
+                                                            <span
+                                                                className={
+                                                                    transaction.type ===
+                                                                        "in"
+                                                                        ? "font-semibold text-green-600"
+                                                                        : "font-semibold text-red-600"
+                                                                }
+                                                            >
+                                                                {transaction.type ===
+                                                                    "in"
+                                                                    ? "Money In"
+                                                                    : "Money Out"}
+                                                            </span>
+                                                        </td>
+
+                                                        <td
+                                                            className={`px-4 py-4 text-right font-bold ${transaction.type ===
+                                                                    "in"
+                                                                    ? "text-green-600"
+                                                                    : "text-red-600"
+                                                                }`}
+                                                        >
+                                                            {transaction.type ===
+                                                                "in"
+                                                                ? "+"
+                                                                : "-"}
+                                                            {
+                                                                currencySymbol
+                                                            }
+                                                            {formatNumber(
+                                                                transaction.amount
+                                                            )}
+                                                        </td>
+
+                                                        <td className="px-4 py-4 text-right">
+                                                            <button
+                                                                onClick={() =>
+                                                                    handleDeleteTransaction(
+                                                                        transaction.id
+                                                                    )
+                                                                }
+                                                                className="text-sm font-semibold text-red-600 hover:text-red-700"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </td>
+
+                                                    </tr>
+                                                )
+                                            )}
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        )}
+
+                    </section>
 
                 </div>
 
