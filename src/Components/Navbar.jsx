@@ -18,7 +18,7 @@ function Navbar() {
                     <img
                         src="/Basir.png"
                         alt="BasirSeun"
-                        className="h-12 w-auto object-contain"
+                        className="h-20 md:h-24 w-auto object-contain"
                     />
                 </Link>
 

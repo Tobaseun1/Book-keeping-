@@ -97,9 +97,9 @@ function Reports() {
             <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
 
                 <div className="p-6 border-b border-gray-200">
-                    <h1 className="text-2xl font-bold text-blue-600">
-                        Bookkeeping
-                    </h1>
+                    <a href="/" aria-label="Go to the BasirSeun home page">
+                        <img src="/Basir.png" alt="BasirSeun" className="h-24 w-full object-contain" />
+                    </a>
 
                     <p className="text-xs text-gray-500 mt-1">
                         Simple financial management

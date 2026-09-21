@@ -9,9 +9,9 @@ function Footer() {
 
 
                     <div>
-                        <h2 className="text-2xl font-bold text-blue-400">
-                            Bookkeeping
-                        </h2>
+                        <Link to="/" aria-label="Go to the BasirSeun home page">
+                            <img src="/Basir.png" alt="BasirSeun" className="h-28 w-auto rounded-lg bg-white object-contain" />
+                        </Link>
 
                         <p className="text-gray-400 mt-4 max-w-sm">
                             A simple way to track your business income, expenses and
@@ -65,7 +65,7 @@ function Footer() {
 
 
                 <div className="border-t border-gray-700 mt-10 pt-6 text-center text-gray-500">
-                    © 2026 Bookkeeping. All rights reserved.
+                    © 2026 BasirSeun. All rights reserved.
                 </div>
 
             </div>
