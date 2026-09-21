@@ -1,15 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const DEFAULT_CATEGORIES = [];
+
+function getCategories() {
+    try {
+        const saved = localStorage.getItem("categories");
+        return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
+    } catch {
+        return DEFAULT_CATEGORIES;
+    }
+}
 
 function AddTransaction({ onAdd }) {
     const [amount, setAmount] = useState("");
     const [type, setType] = useState("in");
-    const [category, setCategory] = useState("Sales");
+    const [categories, setCategories] = useState(getCategories);
+    const [category, setCategory] = useState(() => getCategories()[0] || "");
     const [note, setNote] = useState("");
+
+    useEffect(() => {
+        function loadCategories() {
+            const updated = getCategories();
+            setCategories(updated);
+
+            setCategory((current) =>
+                updated.includes(current) ? current : updated[0] || ""
+            );
+        }
+
+        window.addEventListener("categoriesUpdated", loadCategories);
+
+        return () => {
+            window.removeEventListener("categoriesUpdated", loadCategories);
+        };
+    }, []);
 
     function handleSubmit(e) {
         e.preventDefault();
 
-        if (!amount) return;
+        if (!amount || !category) return;
 
         onAdd({
             id: Date.now(),
@@ -73,16 +102,23 @@ function AddTransaction({ onAdd }) {
                     <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="w-full border rounded-lg px-4 py-3"
+                        disabled={categories.length === 0}
+                        className="w-full border rounded-lg px-4 py-3 disabled:bg-gray-100 disabled:text-gray-400"
                     >
-                        <option>Sales</option>
-                        <option>Stock/Inventory</option>
-                        <option>Rent</option>
-                        <option>Transport</option>
-                        <option>Utilities</option>
-                        <option>Salaries</option>
-                        <option>Other</option>
+                        {categories.length === 0 ? (
+                            <option value="">Add a category first</option>
+                        ) : (
+                            categories.map((cat) => (
+                                <option key={cat}>{cat}</option>
+                            ))
+                        )}
                     </select>
+
+                    {categories.length === 0 && (
+                        <p className="mt-2 text-xs text-gray-500">
+                            Go to Categories and add one before recording a transaction.
+                        </p>
+                    )}
                 </div>
 
                 <div>
@@ -103,7 +139,8 @@ function AddTransaction({ onAdd }) {
 
                     <button
                         type="submit"
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+                        disabled={categories.length === 0}
+                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         Save Transaction
                     </button>

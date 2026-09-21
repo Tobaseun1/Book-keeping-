@@ -1,16 +1,31 @@
-# React + Vite
+Bookkeeping App
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A simple bookkeeping and finance-tracking web app for small businesses, built with React and Vite. Track income and expenses, manage invoices, and monitor your business finances — all from one dashboard.
 
-Currently, two official plugins are available:
+Features
+Dashboard — overview of starting balance, money in, money out, and current balance
+Transactions — record and categorize income and expenses
+Categories — organize transactions by custom categories
+Invoices — create invoices, track pending/paid status, print or export to PDF
+Receipts — manage receipts alongside invoices
+Reports — view financial summaries over time
+Savings Target — set and track savings goals
+Business Registration — capture business details
+Authentication — login/sign-up flow with protected routes for dashboard pages
+CSV Export — export transaction data
+Multi-currency support — NGN, USD, GBP, EUR
+Tech Stack
+React 19, Vite, React Router, Tailwind CSS, Oxlint (linting)
+Data Storage
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Currently uses browser localStorage for transactions, invoices, currency, and business name — no backend required to run locally.
 
-## React Compiler
+Getting Started
+bash
+npm install
+npm run dev       # start dev server
+npm run build     # production build
+npm run preview   # preview the build
+Deployment
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Deployed on Vercel, auto-deploying on every push to master.

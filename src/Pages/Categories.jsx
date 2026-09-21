@@ -1,7 +1,20 @@
 import { useState, useEffect } from "react";
 
+const DEFAULT_CATEGORIES = [];
+
+function getCategories() {
+    try {
+        const saved = localStorage.getItem("categories");
+        return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
+    } catch {
+        return DEFAULT_CATEGORIES;
+    }
+}
+
 function Categories() {
     const [transactions, setTransactions] = useState([]);
+    const [categories, setCategories] = useState(getCategories);
+    const [newCategory, setNewCategory] = useState("");
 
     useEffect(() => {
         loadTransactions();
@@ -16,6 +29,18 @@ function Categories() {
         };
     }, []);
 
+    useEffect(() => {
+        function loadCategories() {
+            setCategories(getCategories());
+        }
+
+        window.addEventListener("categoriesUpdated", loadCategories);
+
+        return () => {
+            window.removeEventListener("categoriesUpdated", loadCategories);
+        };
+    }, []);
+
     function loadTransactions() {
         const saved = localStorage.getItem("transactions");
 
@@ -24,6 +49,31 @@ function Categories() {
         } else {
             setTransactions([]);
         }
+    }
+
+    function handleAddCategory(event) {
+        event.preventDefault();
+
+        const trimmed = newCategory.trim();
+
+        if (!trimmed) return;
+
+        const alreadyExists = categories.some(
+            (category) => category.toLowerCase() === trimmed.toLowerCase()
+        );
+
+        if (alreadyExists) {
+            setNewCategory("");
+            return;
+        }
+
+        const updated = [...categories, trimmed];
+
+        localStorage.setItem("categories", JSON.stringify(updated));
+        setCategories(updated);
+        setNewCategory("");
+
+        window.dispatchEvent(new Event("categoriesUpdated"));
     }
 
     const currency =
@@ -38,16 +88,6 @@ function Categories() {
 
     const currencySymbol =
         currencySymbols[currency] || "₦";
-
-    const categories = [
-        "Sales",
-        "Stock/Inventory",
-        "Rent",
-        "Transport",
-        "Utilities",
-        "Salaries",
-        "Other",
-    ];
 
     function getMoneyIn(category) {
         return transactions
@@ -91,9 +131,9 @@ function Categories() {
             <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
 
                 <div className="p-6 border-b border-gray-200">
-                    <a href="/" aria-label="Go to the BasirSeun home page">
-                        <img src="/Basir.png" alt="BasirSeun" className="h-24 w-full object-contain" />
-                    </a>
+                    <h1 className="text-2xl font-bold text-blue-600">
+                        Bookkeeping
+                    </h1>
 
                     <p className="text-xs text-gray-500 mt-1">
                         Simple financial management
@@ -186,94 +226,30 @@ function Categories() {
 
                     </div>
 
-                    {/* CATEGORY CARDS */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* ADD CATEGORY */}
+                    <form
+                        onSubmit={handleAddCategory}
+                        className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center"
+                    >
+                        <input
+                            type="text"
+                            value={newCategory}
+                            onChange={(event) =>
+                                setNewCategory(event.target.value)
+                            }
+                            placeholder="Add a new category (e.g. Marketing)"
+                            className="w-full sm:max-w-xs rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
+                        />
 
-                        {categories.map((category) => {
+                        <button
+                            type="submit"
+                            className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+                        >
+                            Add Category
+                        </button>
+                    </form>
 
-                            const moneyIn =
-                                getMoneyIn(category);
-
-                            const moneyOut =
-                                getMoneyOut(category);
-
-                            const transactionCount =
-                                getTransactionCount(category);
-
-                            const totalActivity =
-                                moneyIn + moneyOut;
-
-                            return (
-                                <div
-                                    key={category}
-                                    className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
-                                >
-
-                                    <div className="flex items-center justify-between">
-
-                                        <h2 className="text-lg font-bold text-gray-900">
-                                            {category}
-                                        </h2>
-
-                                        <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                                            {transactionCount} transaction
-                                            {transactionCount !== 1
-                                                ? "s"
-                                                : ""}
-                                        </span>
-
-                                    </div>
-
-                                    {/* TOTAL */}
-                                    <div className="mt-6">
-
-                                        <p className="text-sm text-gray-500">
-                                            Total Activity
-                                        </p>
-
-                                        <p className="text-2xl font-bold text-gray-900 mt-1">
-                                            {currencySymbol}
-                                            {totalActivity.toLocaleString()}
-                                        </p>
-
-                                    </div>
-
-                                    {/* MONEY IN */}
-                                    <div className="mt-5 flex justify-between">
-
-                                        <span className="text-sm text-gray-500">
-                                            Money In
-                                        </span>
-
-                                        <span className="font-semibold text-green-600">
-                                            {currencySymbol}
-                                            {moneyIn.toLocaleString()}
-                                        </span>
-
-                                    </div>
-
-                                    {/* MONEY OUT */}
-                                    <div className="mt-3 flex justify-between">
-
-                                        <span className="text-sm text-gray-500">
-                                            Money Out
-                                        </span>
-
-                                        <span className="font-semibold text-red-500">
-                                            {currencySymbol}
-                                            {moneyOut.toLocaleString()}
-                                        </span>
-
-                                    </div>
-
-                                </div>
-                            );
-                        })}
-
-                    </div>
-
-                    {/* EMPTY MESSAGE */}
-                    {transactions.length === 0 && (
+                    {categories.length === 0 ? (
                         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center mt-8">
 
                             <div className="text-5xl mb-4">
@@ -281,22 +257,126 @@ function Categories() {
                             </div>
 
                             <h2 className="text-xl font-bold text-gray-900">
-                                No category activity yet
+                                No categories yet
                             </h2>
 
                             <p className="text-gray-500 mt-2">
-                                Add a transaction to see your category
-                                breakdown.
+                                Add your first category above to start
+                                tracking activity.
                             </p>
 
-                            <a
-                                href="/dashboard"
-                                className="inline-block mt-6 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-blue-700"
-                            >
-                                Add Transaction
-                            </a>
-
                         </div>
+                    ) : (
+                        <>
+                            {/* CATEGORY CARDS */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                                {categories.map((category) => {
+
+                                    const moneyIn =
+                                        getMoneyIn(category);
+
+                                    const moneyOut =
+                                        getMoneyOut(category);
+
+                                    const transactionCount =
+                                        getTransactionCount(category);
+
+                                    const totalActivity =
+                                        moneyIn + moneyOut;
+
+                                    return (
+                                        <div
+                                            key={category}
+                                            className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
+                                        >
+
+                                            <div className="flex items-center justify-between">
+
+                                                <h2 className="text-lg font-bold text-gray-900">
+                                                    {category}
+                                                </h2>
+
+                                                <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                                                    {transactionCount} transaction
+                                                    {transactionCount !== 1
+                                                        ? "s"
+                                                        : ""}
+                                                </span>
+
+                                            </div>
+
+                                            <div className="mt-6">
+
+                                                <p className="text-sm text-gray-500">
+                                                    Total Activity
+                                                </p>
+
+                                                <p className="text-2xl font-bold text-gray-900 mt-1">
+                                                    {currencySymbol}
+                                                    {totalActivity.toLocaleString()}
+                                                </p>
+
+                                            </div>
+
+                                            <div className="mt-5 flex justify-between">
+
+                                                <span className="text-sm text-gray-500">
+                                                    Money In
+                                                </span>
+
+                                                <span className="font-semibold text-green-600">
+                                                    {currencySymbol}
+                                                    {moneyIn.toLocaleString()}
+                                                </span>
+
+                                            </div>
+
+                                            <div className="mt-3 flex justify-between">
+
+                                                <span className="text-sm text-gray-500">
+                                                    Money Out
+                                                </span>
+
+                                                <span className="font-semibold text-red-500">
+                                                    {currencySymbol}
+                                                    {moneyOut.toLocaleString()}
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+                                    );
+                                })}
+
+                            </div>
+
+                            {transactions.length === 0 && (
+                                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center mt-8">
+
+                                    <div className="text-5xl mb-4">
+                                        📁
+                                    </div>
+
+                                    <h2 className="text-xl font-bold text-gray-900">
+                                        No category activity yet
+                                    </h2>
+
+                                    <p className="text-gray-500 mt-2">
+                                        Add a transaction to see your category
+                                        breakdown.
+                                    </p>
+
+                                    <a
+                                        href="/dashboard"
+                                        className="inline-block mt-6 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-blue-700"
+                                    >
+                                        Add Transaction
+                                    </a>
+
+                                </div>
+                            )}
+                        </>
                     )}
 
                 </main>

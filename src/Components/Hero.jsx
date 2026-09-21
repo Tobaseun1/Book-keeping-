@@ -11,9 +11,6 @@ function Hero() {
                     <div className="flex items-center px-6 py-20 lg:py-32">
                         <div className="max-w-xl">
 
-                            <span className="inline-block bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold">
-                                Simple Business Bookkeeping
-                            </span>
 
                             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 leading-tight mt-6">
                                 Take control of your{" "}

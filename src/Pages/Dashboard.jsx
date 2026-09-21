@@ -607,7 +607,7 @@ function Dashboard() {
                 SIDEBAR
             ========================= */}
 
-            <aside className="fixed left-0 top-0 h-screen w-64 bg-white shadow-md p-6">
+            <aside className="fixed left-0 top-0 h-screen w-64 bg-black shadow-md p-6">
 
                 <h1 className="text-2xl font-bold text-blue-600 mb-8">
                     Bookkeeping
