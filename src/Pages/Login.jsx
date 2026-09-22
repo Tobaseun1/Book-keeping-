@@ -33,7 +33,7 @@ function Login() {
         }
 
         localStorage.setItem("bookkeepingUser", JSON.stringify(savedUser));
-        navigate("/dashboard");
+        navigate("/transactions");
     }
 
     return (

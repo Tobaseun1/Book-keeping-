@@ -21,7 +21,7 @@ function BusinessRegistration() {
         localStorage.setItem("currency", currency);
         localStorage.setItem("startingBalance", startingBalance);
 
-        navigate("/dashboard");
+        navigate("/transactions");
     }
 
     return (
