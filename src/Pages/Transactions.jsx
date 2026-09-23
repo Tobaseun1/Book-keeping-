@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import Sidebar from "../Components/Sidebar";
 import {
     deleteTransaction as deleteTransactionDoc,
     subscribeToProfile,
@@ -45,63 +46,7 @@ function Transactions() {
     return (
         <div className="min-h-screen bg-[#F5F7FB] flex">
 
-            {/* SIDEBAR */}
-            <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
-
-                <div className="p-6 border-b border-gray-200">
-                    <a href="/" aria-label="Go to the BasirSeun home page">
-                        <img src="/Basir.png" alt="BasirSeun" className="h-24 w-full object-contain" />
-                    </a>
-
-                    <p className="text-xs text-gray-500 mt-1">
-                        Simple financial management
-                    </p>
-                </div>
-
-                <nav className="p-4 flex-1">
-
-                    <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-3">
-                        Menu
-                    </p>
-
-                    <a
-                        href="/dashboard"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        📊 Dashboard
-                    </a>
-
-                    <a
-                        href="/transactions"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold mb-2"
-                    >
-                        💳 Transactions
-                    </a>
-
-                    <a
-                        href="/categories"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        📁 Categories
-                    </a>
-
-                    <a
-                        href="/reports"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        📈 Reports
-                    </a>
-
-                    <a
-                        href="/settings"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
-                    >
-                        ⚙️ Settings
-                    </a>
-
-                </nav>
-
-            </aside>
+            <Sidebar />
 
             {/* MAIN */}
             <div className="flex-1">
@@ -238,7 +183,7 @@ function Transactions() {
                                                     <span
                                                         className={
                                                             transaction.type === "in"
-                                                                ? "px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700"
+                                                                ? "px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700"
                                                                 : "px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700"
                                                         }
                                                     >
@@ -260,7 +205,7 @@ function Transactions() {
                                                 <td
                                                     className={
                                                         transaction.type === "in"
-                                                            ? "px-6 py-4 text-right font-bold text-green-600"
+                                                            ? "px-6 py-4 text-right font-bold text-blue-600"
                                                             : "px-6 py-4 text-right font-bold text-red-500"
                                                     }
                                                 >

@@ -1,18 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth } from "../firebase";
 import { useAuth } from "../context/AuthContext";
+import Sidebar from "../Components/Sidebar";
 import { saveProfile, subscribeToProfile } from "../lib/firestore";
 
 function SavingsTarget() {
-    const navigate = useNavigate();
     const { user } = useAuth();
-
-    function handleSignOut() {
-        signOut(auth);
-        navigate("/login");
-    }
 
     // =========================
     // SAVINGS TARGETS
@@ -123,90 +115,7 @@ function SavingsTarget() {
     return (
         <div className="min-h-screen bg-[#F5F7FB] flex">
 
-            {/* SIDEBAR */}
-            <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
-
-                <div className="p-6 border-b border-gray-200">
-
-                    <h1 className="text-2xl font-bold text-blue-600">
-                        Bookkeeping
-                    </h1>
-
-                    <p className="text-xs text-gray-500 mt-1">
-                        Simple financial management
-                    </p>
-
-                </div>
-
-                <nav className="p-4 flex-1">
-
-                    <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-3">
-                        Menu
-                    </p>
-
-                    <a
-                        href="/dashboard"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        <span>📊</span>
-                        Dashboard
-                    </a>
-
-                    <a
-                        href="/transactions"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        <span>💳</span>
-                        Transactions
-                    </a>
-
-                    <a
-                        href="/savings-target"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold mb-2"
-                    >
-                        <span>🎯</span>
-                        Savings Target
-                    </a>
-
-                    <a
-                        href="/categories"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        <span>📁</span>
-                        Categories
-                    </a>
-
-                    <a
-                        href="/reports"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        <span>📈</span>
-                        Reports
-                    </a>
-
-                    <a
-                        href="/settings"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
-                    >
-                        <span>⚙️</span>
-                        Settings
-                    </a>
-
-                </nav>
-
-                <div className="p-4 border-t border-gray-200">
-
-                    <button
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
-                    >
-                        <span>🚪</span>
-                        Logout
-                    </button>
-
-                </div>
-
-            </aside>
+            <Sidebar />
 
             {/* MAIN CONTENT */}
             <div className="flex-1">
@@ -467,7 +376,7 @@ function SavingsTarget() {
                                                         Saved
                                                     </p>
 
-                                                    <p className="text-lg font-bold text-green-600 mt-1">
+                                                    <p className="text-lg font-bold text-blue-600 mt-1">
                                                         {currencySymbol}
                                                         {target.savedAmount.toLocaleString()}
                                                     </p>
@@ -506,7 +415,7 @@ function SavingsTarget() {
                                                 onClick={() =>
                                                     addSavings(target.id)
                                                 }
-                                                className="w-full mt-6 bg-green-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-green-700 transition"
+                                                className="w-full mt-6 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
                                             >
                                                 + Add Savings
                                             </button>

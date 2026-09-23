@@ -65,7 +65,7 @@ function Contact() {
                     <section className="rounded-2xl border bg-white p-6 shadow-sm md:p-8 lg:col-span-2">
                         <h2 className="text-2xl font-bold text-gray-900">Send us a message</h2>
                         <p className="mt-2 text-gray-600">Please include enough detail for us to help quickly.</p>
-                        {submitted && <div className="mt-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800" role="status">Thanks! Your message has been recorded. We&apos;ll get back to you soon.</div>}
+                        {submitted && <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-blue-800" role="status">Thanks! Your message has been recorded. We&apos;ll get back to you soon.</div>}
 
                         <form onSubmit={handleSubmit} className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
                             <label className="block text-sm font-medium text-gray-700">Full name

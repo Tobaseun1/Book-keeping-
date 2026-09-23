@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import Sidebar from "../Components/Sidebar";
 import {
     saveProfile,
     subscribeToProfile,
@@ -132,63 +133,7 @@ function Categories() {
     return (
         <div className="min-h-screen bg-[#F5F7FB] flex">
 
-            {/* SIDEBAR */}
-            <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
-
-                <div className="p-6 border-b border-gray-200">
-                    <h1 className="text-2xl font-bold text-blue-600">
-                        Bookkeeping
-                    </h1>
-
-                    <p className="text-xs text-gray-500 mt-1">
-                        Simple financial management
-                    </p>
-                </div>
-
-                <nav className="p-4 flex-1">
-
-                    <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-3">
-                        Menu
-                    </p>
-
-                    <a
-                        href="/dashboard"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        📊 Dashboard
-                    </a>
-
-                    <a
-                        href="/transactions"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        💳 Transactions
-                    </a>
-
-                    <a
-                        href="/categories"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold mb-2"
-                    >
-                        📁 Categories
-                    </a>
-
-                    <a
-                        href="/reports"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        📈 Reports
-                    </a>
-
-                    <a
-                        href="/settings"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
-                    >
-                        ⚙️ Settings
-                    </a>
-
-                </nav>
-
-            </aside>
+            <Sidebar />
 
             {/* MAIN */}
             <div className="flex-1">
@@ -330,7 +275,7 @@ function Categories() {
                                                     Money In
                                                 </span>
 
-                                                <span className="font-semibold text-green-600">
+                                                <span className="font-semibold text-blue-600">
                                                     {currencySymbol}
                                                     {moneyIn.toLocaleString()}
                                                 </span>

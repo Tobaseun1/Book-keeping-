@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth } from "../firebase";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Sidebar from "../Components/Sidebar";
 import {
     addTransaction as addTransactionDoc,
     deleteTransaction as deleteTransactionDoc,
@@ -58,7 +57,6 @@ function formatNumber(value) {
 }
 
 function Dashboard() {
-    const navigate = useNavigate();
     const { user } = useAuth();
 
     /* =========================
@@ -578,97 +576,14 @@ function Dashboard() {
         URL.revokeObjectURL(url);
     }
 
-    /* =========================
-       SIGN OUT
-    ========================= */
-
-    function handleSignOut() {
-        signOut(auth);
-        navigate("/login");
-    }
-
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#F5F7FB] flex">
 
-            {/* =========================
-                SIDEBAR
-            ========================= */}
+            <Sidebar />
 
-            <aside className="fixed left-0 top-0 h-screen w-64 bg-black shadow-md p-6">
+            <div className="flex-1">
 
-                <h1 className="text-2xl font-bold text-blue-600 mb-8">
-                    Bookkeeping
-                </h1>
-
-                <nav className="flex-1 space-y-2 px-4 py-6">
-
-                    <Link
-                        to="/dashboard"
-                        className="block rounded-lg bg-blue-600 px-4 py-3 font-medium"
-                    >
-                        Dashboard
-                    </Link>
-
-                    <Link
-                        to="/transactions"
-                        className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
-                    >
-                        Transactions
-                    </Link>
-
-                    <a
-                        href="#savings-target"
-                        className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
-                    >
-                        Savings Target
-                    </a>
-
-                    <Link
-                        to="/categories"
-                        className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
-                    >
-                        Categories
-                    </Link>
-
-                    <Link
-                        to="/reports"
-                        className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
-                    >
-                        Reports
-                    </Link>
-
-                    <Link
-                        to="/invoices"
-                        className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
-                    >
-                        Invoices
-                    </Link>
-
-                    <Link
-                        to="/settings"
-                        className="block rounded-lg px-4 py-3 text-gray-300 transition hover:bg-gray-800 hover:text-white"
-                    >
-                        Settings
-                    </Link>
-
-                </nav>
-
-                <div className="border-t border-gray-800 p-4">
-                    <button
-                        onClick={handleSignOut}
-                        className="w-full rounded-lg px-4 py-3 text-left text-red-400 transition hover:bg-gray-800"
-                    >
-                        Sign Out
-                    </button>
-                </div>
-
-            </aside>
-
-            {/* =========================
-                MAIN CONTENT
-            ========================= */}
-
-            <main className="lg:ml-64">
+            <main>
 
                 {/* HEADER */}
 
@@ -723,7 +638,7 @@ function Dashboard() {
                                     Money In
                                 </p>
 
-                                <h2 className="mt-3 text-2xl font-bold text-green-600">
+                                <h2 className="mt-3 text-2xl font-bold text-blue-600">
                                     {currencySymbol}
                                     {formatNumber(moneyIn)}
                                 </h2>
@@ -899,12 +814,12 @@ function Dashboard() {
                                         </p>
                                     </div>
 
-                                    <div className="rounded-xl bg-green-50 p-4">
+                                    <div className="rounded-xl bg-blue-50 p-4">
                                         <p className="text-sm text-gray-500">
                                             Status
                                         </p>
 
-                                        <p className="mt-1 font-bold text-green-600">
+                                        <p className="mt-1 font-bold text-blue-600">
                                             {savingsCompleted
                                                 ? "Completed"
                                                 : "In Progress"}
@@ -1336,7 +1251,7 @@ function Dashboard() {
                                                                 className={
                                                                     transaction.type ===
                                                                         "in"
-                                                                        ? "font-semibold text-green-600"
+                                                                        ? "font-semibold text-blue-600"
                                                                         : "font-semibold text-red-600"
                                                                 }
                                                             >
@@ -1350,7 +1265,7 @@ function Dashboard() {
                                                         <td
                                                             className={`px-4 py-4 text-right font-bold ${transaction.type ===
                                                                 "in"
-                                                                ? "text-green-600"
+                                                                ? "text-blue-600"
                                                                 : "text-red-600"
                                                                 }`}
                                                         >
@@ -1396,6 +1311,8 @@ function Dashboard() {
                 </div>
 
             </main>
+
+            </div>
 
         </div>
     );

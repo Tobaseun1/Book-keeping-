@@ -1,18 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth } from "../firebase";
 import { useAuth } from "../context/AuthContext";
+import Sidebar from "../Components/Sidebar";
 import { subscribeToProfile, subscribeToTransactions } from "../lib/firestore";
 
 function Reports() {
-    const navigate = useNavigate();
     const { user } = useAuth();
-
-    function handleSignOut() {
-        signOut(auth);
-        navigate("/login");
-    }
     const [transactions, setTransactions] = useState([]);
     const [startingBalance, setStartingBalance] = useState(0);
     const [currency, setCurrency] = useState("NGN");
@@ -111,74 +103,7 @@ function Reports() {
     return (
         <div className="min-h-screen bg-[#F5F7FB] flex">
 
-            {/* SIDEBAR */}
-            <aside className="hidden md:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col">
-
-                <div className="p-6 border-b border-gray-200">
-                    <a href="/" aria-label="Go to the BasirSeun home page">
-                        <img src="/Basir.png" alt="BasirSeun" className="h-24 w-full object-contain" />
-                    </a>
-
-                    <p className="text-xs text-gray-500 mt-1">
-                        Simple financial management
-                    </p>
-                </div>
-
-                <nav className="p-4 flex-1">
-
-                    <p className="text-xs font-semibold text-gray-400 uppercase px-3 mb-3">
-                        Menu
-                    </p>
-
-                    <a
-                        href="/dashboard"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        📊 Dashboard
-                    </a>
-
-                    <a
-                        href="/transactions"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        💳 Transactions
-                    </a>
-
-                    <a
-                        href="/categories"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 mb-2"
-                    >
-                        📁 Categories
-                    </a>
-
-                    <a
-                        href="/reports"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-600 font-semibold mb-2"
-                    >
-                        📈 Reports
-                    </a>
-
-                    <a
-                        href="/settings"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
-                    >
-                        ⚙️ Settings
-                    </a>
-
-                </nav>
-
-                <div className="p-4 border-t border-gray-200">
-
-                    <button
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
-                    >
-                        🚪 Logout
-                    </button>
-
-                </div>
-
-            </aside>
+            <Sidebar />
 
             {/* MAIN */}
             <div className="flex-1">
@@ -224,7 +149,7 @@ function Reports() {
 
                         <button
                             onClick={exportCSV}
-                            className="bg-green-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-green-700 transition"
+                            className="bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
                         >
                             ↓ Export CSV
                         </button>
@@ -269,7 +194,7 @@ function Reports() {
                                 Total Money In
                             </p>
 
-                            <h2 className="text-3xl font-bold text-green-600 mt-3">
+                            <h2 className="text-3xl font-bold text-blue-600 mt-3">
                                 {currencySymbol}
                                 {moneyIn.toLocaleString()}
                             </h2>
@@ -312,7 +237,7 @@ function Reports() {
                                     Money In
                                 </span>
 
-                                <span className="text-sm font-bold text-green-600">
+                                <span className="text-sm font-bold text-blue-600">
                                     {currencySymbol}
                                     {moneyIn.toLocaleString()}
                                 </span>
@@ -322,7 +247,7 @@ function Reports() {
                             <div className="w-full bg-gray-100 rounded-full h-4">
 
                                 <div
-                                    className="bg-green-500 h-4 rounded-full"
+                                    className="bg-blue-500 h-4 rounded-full"
                                     style={{
                                         width:
                                             moneyIn + moneyOut === 0
@@ -399,7 +324,7 @@ function Reports() {
                                         Money In Transactions
                                     </span>
 
-                                    <span className="font-bold text-green-600">
+                                    <span className="font-bold text-blue-600">
                                         {
                                             transactions.filter(
                                                 (transaction) =>
@@ -445,7 +370,7 @@ function Reports() {
                             <h3
                                 className={
                                     balance >= 0
-                                        ? "text-4xl font-bold text-green-600 mt-8"
+                                        ? "text-4xl font-bold text-blue-600 mt-8"
                                         : "text-4xl font-bold text-red-500 mt-8"
                                 }
                             >

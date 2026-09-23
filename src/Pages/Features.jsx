@@ -6,7 +6,7 @@ function Features() {
     const isLoggedIn = localStorage.getItem("bookkeepingUser");
 
     const coreFeatures = [
-        { icon: "↗", title: "Income tracking", text: "Record sales, client payments, and any other money coming into your business. See your earnings without adding numbers by hand, and keep your revenue stream easy to review at any moment.", color: "bg-green-100 text-green-700" },
+        { icon: "↗", title: "Income tracking", text: "Record sales, client payments, and any other money coming into your business. See your earnings without adding numbers by hand, and keep your revenue stream easy to review at any moment.", color: "bg-blue-100 text-blue-700" },
         { icon: "↘", title: "Expense tracking", text: "Capture everyday costs such as supplies, transport, rent, bills, subscriptions, and payroll. A complete expense record makes it much easier to understand where your money is going.", color: "bg-red-100 text-red-700" },
         { icon: "≡", title: "Categories that make sense", text: "Sort every transaction into the right bucket so your books stay organized and searchable. Group sales, costs, software, utilities, and more into categories that match your business model.", color: "bg-blue-100 text-blue-700" },
         { icon: "▣", title: "Clear dashboard", text: "Open your dashboard for a quick view of your current balance, total income, total expenses, recent transactions, and overall business health without digging through spreadsheets.", color: "bg-violet-100 text-violet-700" },

@@ -104,19 +104,19 @@ function Home() {
                                 </h3>
                             </div>
 
-                            <div className="rounded-lg bg-green-100 px-3 py-2 text-sm font-semibold text-green-600">
+                            <div className="rounded-lg bg-blue-100 px-3 py-2 text-sm font-semibold text-blue-600">
                                 +12%
                             </div>
                         </div>
 
                         <div className="mt-8 grid grid-cols-2 gap-4">
 
-                            <div className="rounded-xl bg-green-50 p-5">
+                            <div className="rounded-xl bg-blue-50 p-5">
                                 <p className="text-sm text-gray-500">
                                     Money In
                                 </p>
 
-                                <p className="mt-2 text-xl font-bold text-green-600">
+                                <p className="mt-2 text-xl font-bold text-blue-600">
                                     ₦180,000
                                 </p>
                             </div>
