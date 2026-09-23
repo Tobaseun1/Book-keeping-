@@ -18,6 +18,31 @@ const CURRENCY_SYMBOLS = {
     EUR: "€",
 };
 
+const DEFAULT_CATEGORY_SUGGESTIONS = [
+    "Sales",
+    "Salary",
+    "Utility",
+    "Transport",
+    "Energy",
+];
+
+function mergeCategoryOptions(categories) {
+    const merged = [...categories];
+
+    DEFAULT_CATEGORY_SUGGESTIONS.forEach((suggestion) => {
+        const exists = merged.some(
+            (category) =>
+                category.toLowerCase() === suggestion.toLowerCase()
+        );
+
+        if (!exists) {
+            merged.push(suggestion);
+        }
+    });
+
+    return merged;
+}
+
 function getToday() {
     const date = new Date();
 
@@ -44,6 +69,7 @@ function Dashboard() {
     const [currency, setCurrency] = useState("NGN");
     const [startingBalance, setStartingBalance] = useState(0);
     const [categories, setCategories] = useState([]);
+    const categoryOptions = mergeCategoryOptions(categories);
     const [savingsTarget, setSavingsTargetState] = useState(null);
 
     const currencySymbol = CURRENCY_SYMBOLS[currency] || "₦";
@@ -1128,28 +1154,29 @@ function Dashboard() {
                                     Category
                                 </label>
 
-                                <input
-                                    type="text"
-                                    list="category-suggestions"
+                                <select
                                     value={transactionCategory}
                                     onChange={(e) =>
                                         setTransactionCategory(e.target.value)
                                     }
-                                    placeholder="Type or pick a category"
                                     required
                                     className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
-                                />
+                                >
+                                    <option value="">
+                                        Select a category
+                                    </option>
 
-                                <datalist id="category-suggestions">
-                                    {categories.map(
+                                    {categoryOptions.map(
                                         (category) => (
                                             <option
                                                 key={category}
                                                 value={category}
-                                            />
+                                            >
+                                                {category}
+                                            </option>
                                         )
                                     )}
-                                </datalist>
+                                </select>
                             </div>
 
                             <div>
