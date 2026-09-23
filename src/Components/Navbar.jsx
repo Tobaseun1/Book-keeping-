@@ -55,10 +55,10 @@ function Navbar() {
 
                     {/* Login / Dashboard */}
                     <Link
-                        to={isLoggedIn ? "/dashboard" : "/login"}
+                        to={isLoggedIn ? "/transactions" : "/login"}
                         className="hidden text-gray-700 transition hover:text-blue-600 sm:block"
                     >
-                        {isLoggedIn ? "Dashboard" : "Login"}
+                        {isLoggedIn ? "Transactions" : "Login"}
                     </Link>
 
                     {/* Sign Out */}
@@ -74,10 +74,10 @@ function Navbar() {
                     {/* Main Button */}
                     {isLoggedIn ? (
                         <Link
-                            to="/dashboard"
+                            to="/transactions"
                             className="rounded-xl bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-700"
                         >
-                            Dashboard
+                            Transactions
                         </Link>
                     ) : (
                         <Link

@@ -30,7 +30,7 @@ function BusinessRegistration() {
                 startingBalance: Number(startingBalance) || 0,
             });
 
-            navigate("/dashboard");
+            navigate("/transactions");
         } finally {
             setSubmitting(false);
         }

@@ -33,7 +33,7 @@ function Login() {
 
         try {
             await signInWithEmailAndPassword(auth, email.trim(), password);
-            navigate("/dashboard");
+            navigate("/transactions");
         } catch (err) {
             setError(getLoginErrorMessage(err));
         } finally {
