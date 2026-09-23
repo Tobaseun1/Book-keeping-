@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import {
+    addInvoice,
+    addTransaction,
+    deleteInvoice as deleteInvoiceDoc,
+    subscribeToInvoices,
+    subscribeToProfile,
+    subscribeToTransactions,
+    updateInvoice,
+} from "../lib/firestore";
 
 const CURRENCY_SYMBOLS = {
     NGN: "₦",
@@ -7,20 +17,6 @@ const CURRENCY_SYMBOLS = {
     GBP: "£",
     EUR: "€",
 };
-
-function getCurrencySymbol() {
-    const currency = localStorage.getItem("currency") || "NGN";
-    return CURRENCY_SYMBOLS[currency] || "₦";
-}
-
-function getInvoices() {
-    try {
-        const saved = localStorage.getItem("invoices");
-        return saved ? JSON.parse(saved) : [];
-    } catch {
-        return [];
-    }
-}
 
 function getNextInvoiceNumber(invoices) {
     const year = new Date().getFullYear();
@@ -41,7 +37,11 @@ function getNextInvoiceNumber(invoices) {
 }
 
 function Invoices() {
-    const [invoices, setInvoices] = useState(getInvoices);
+    const { user } = useAuth();
+    const [invoices, setInvoices] = useState([]);
+    const [transactions, setTransactions] = useState([]);
+    const [currency, setCurrency] = useState("NGN");
+    const [businessName, setBusinessName] = useState("My Business");
 
     const [clientName, setClientName] = useState("");
     const [clientEmail, setClientEmail] = useState("");
@@ -49,14 +49,28 @@ function Invoices() {
     const [amount, setAmount] = useState("");
     const [dueDate, setDueDate] = useState("");
 
-    const currencySymbol = getCurrencySymbol();
+    const currencySymbol = CURRENCY_SYMBOLS[currency] || "₦";
 
     useEffect(() => {
-        localStorage.setItem(
-            "invoices",
-            JSON.stringify(invoices)
+        const unsubscribe = subscribeToInvoices(user.uid, setInvoices);
+        return unsubscribe;
+    }, [user.uid]);
+
+    useEffect(() => {
+        const unsubscribe = subscribeToTransactions(
+            user.uid,
+            setTransactions
         );
-    }, [invoices]);
+        return unsubscribe;
+    }, [user.uid]);
+
+    useEffect(() => {
+        const unsubscribe = subscribeToProfile(user.uid, (profile) => {
+            setCurrency(profile.currency);
+            setBusinessName(profile.businessName);
+        });
+        return unsubscribe;
+    }, [user.uid]);
 
     function handleSubmit(event) {
         event.preventDefault();
@@ -72,8 +86,7 @@ function Invoices() {
             return;
         }
 
-        const newInvoice = {
-            id: Date.now(),
+        addInvoice(user.uid, {
             number: getNextInvoiceNumber(invoices),
             clientName: clientName.trim(),
             clientEmail: clientEmail.trim(),
@@ -83,12 +96,7 @@ function Invoices() {
             status: "Pending",
             createdAt: new Date().toISOString(),
             paidAt: null,
-        };
-
-        setInvoices((current) => [
-            newInvoice,
-            ...current,
-        ]);
+        });
 
         setClientName("");
         setClientEmail("");
@@ -102,55 +110,24 @@ function Invoices() {
 
         const paidAt = new Date().toISOString();
 
-        setInvoices((current) =>
-            current.map((item) =>
-                item.id === invoice.id
-                    ? {
-                        ...item,
-                        status: "Paid",
-                        paidAt,
-                    }
-                    : item
-            )
-        );
+        updateInvoice(user.uid, invoice.id, {
+            status: "Paid",
+            paidAt,
+        });
 
-        const savedTransactions = (() => {
-            try {
-                const saved =
-                    localStorage.getItem("transactions");
-                return saved ? JSON.parse(saved) : [];
-            } catch {
-                return [];
-            }
-        })();
-
-        const alreadyRecorded = savedTransactions.some(
-            (transaction) =>
-                transaction.invoiceId === invoice.id
+        const alreadyRecorded = transactions.some(
+            (transaction) => transaction.invoiceId === invoice.id
         );
 
         if (!alreadyRecorded) {
-            const transaction = {
-                id: Date.now(),
+            addTransaction(user.uid, {
                 invoiceId: invoice.id,
                 amount: invoice.amount,
                 type: "in",
                 category: "Sales",
                 date: paidAt.slice(0, 10),
                 note: `Invoice ${invoice.number} paid by ${invoice.clientName}`,
-            };
-
-            localStorage.setItem(
-                "transactions",
-                JSON.stringify([
-                    transaction,
-                    ...savedTransactions,
-                ])
-            );
-
-            window.dispatchEvent(
-                new Event("transactionsUpdated")
-            );
+            });
         }
     }
 
@@ -161,9 +138,7 @@ function Invoices() {
 
         if (!confirmed) return;
 
-        setInvoices((current) =>
-            current.filter((invoice) => invoice.id !== id)
-        );
+        deleteInvoiceDoc(user.uid, id);
     }
 
     function printInvoice(invoice) {
@@ -222,7 +197,7 @@ function Invoices() {
                             <p class="muted">${invoice.number}</p>
                         </div>
                         <div>
-                            <strong>${localStorage.getItem("businessName") || "My Business"}</strong>
+                            <strong>${businessName}</strong>
                         </div>
                     </div>
 

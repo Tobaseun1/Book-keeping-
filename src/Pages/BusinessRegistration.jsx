@@ -1,27 +1,39 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { saveProfile } from "../lib/firestore";
 
 function BusinessRegistration() {
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     const [businessName, setBusinessName] = useState("");
     const [description, setDescription] = useState("");
     const [currency, setCurrency] = useState("NGN");
     const [startingBalance, setStartingBalance] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
 
         if (!businessName.trim()) {
             return;
         }
 
-        localStorage.setItem("businessName", businessName);
-        localStorage.setItem("businessDescription", description);
-        localStorage.setItem("currency", currency);
-        localStorage.setItem("startingBalance", startingBalance);
+        setSubmitting(true);
 
-        navigate("/dashboard");
+        try {
+            await saveProfile(user.uid, {
+                businessName: businessName.trim(),
+                businessDescription: description.trim(),
+                currency,
+                startingBalance: Number(startingBalance) || 0,
+            });
+
+            navigate("/dashboard");
+        } finally {
+            setSubmitting(false);
+        }
     }
 
     return (
@@ -107,9 +119,10 @@ function BusinessRegistration() {
 
                     <button
                         type="submit"
-                        className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
+                        disabled={submitting}
+                        className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        Continue to Dashboard →
+                        {submitting ? "Saving..." : "Continue to Dashboard →"}
                     </button>
 
                 </form>

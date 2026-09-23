@@ -1,39 +1,60 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { subscribeToProfile, subscribeToTransactions } from "../lib/firestore";
 
-const DEFAULT_CATEGORIES = [];
+function mergeCategories(savedCategories, transactions) {
+    const transactionCategories = transactions
+        .map((transaction) => transaction.category)
+        .filter(Boolean);
 
-function getCategories() {
-    try {
-        const saved = localStorage.getItem("categories");
-        return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
-    } catch {
-        return DEFAULT_CATEGORIES;
-    }
+    const merged = [...savedCategories];
+
+    transactionCategories.forEach((category) => {
+        const exists = merged.some(
+            (existing) =>
+                existing.toLowerCase() === category.toLowerCase()
+        );
+
+        if (!exists) {
+            merged.push(category);
+        }
+    });
+
+    return merged;
 }
 
 function AddTransaction({ onAdd }) {
+    const { user } = useAuth();
     const [amount, setAmount] = useState("");
     const [type, setType] = useState("in");
-    const [categories, setCategories] = useState(getCategories);
-    const [category, setCategory] = useState(() => getCategories()[0] || "");
-    const [note, setNote] = useState("");
+    const [savedCategories, setSavedCategories] = useState([]);
+    const [transactions, setTransactions] = useState([]);
+    const [category, setCategory] = useState("");
+
+    const categories = mergeCategories(savedCategories, transactions);
 
     useEffect(() => {
-        function loadCategories() {
-            const updated = getCategories();
-            setCategories(updated);
+        const unsubscribe = subscribeToProfile(user.uid, (profile) => {
+            setSavedCategories(profile.categories || []);
+        });
 
-            setCategory((current) =>
-                updated.includes(current) ? current : updated[0] || ""
-            );
-        }
+        return unsubscribe;
+    }, [user.uid]);
 
-        window.addEventListener("categoriesUpdated", loadCategories);
+    useEffect(() => {
+        const unsubscribe = subscribeToTransactions(
+            user.uid,
+            setTransactions
+        );
 
-        return () => {
-            window.removeEventListener("categoriesUpdated", loadCategories);
-        };
-    }, []);
+        return unsubscribe;
+    }, [user.uid]);
+
+    useEffect(() => {
+        setCategory((current) =>
+            categories.includes(current) ? current : categories[0] || ""
+        );
+    }, [categories]);
 
     function handleSubmit(e) {
         e.preventDefault();

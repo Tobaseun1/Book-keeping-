@@ -1,15 +1,39 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import { subscribeToProfile, subscribeToTransactions } from "../lib/firestore";
 
 function Reports() {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
+    function handleSignOut() {
+        signOut(auth);
+        navigate("/login");
+    }
     const [transactions, setTransactions] = useState([]);
+    const [startingBalance, setStartingBalance] = useState(0);
+    const [currency, setCurrency] = useState("NGN");
 
     useEffect(() => {
-        const saved = localStorage.getItem("transactions");
+        const unsubscribe = subscribeToTransactions(
+            user.uid,
+            setTransactions
+        );
 
-        if (saved) {
-            setTransactions(JSON.parse(saved));
-        }
-    }, []);
+        return unsubscribe;
+    }, [user.uid]);
+
+    useEffect(() => {
+        const unsubscribe = subscribeToProfile(user.uid, (profile) => {
+            setStartingBalance(Number(profile.startingBalance) || 0);
+            setCurrency(profile.currency);
+        });
+
+        return unsubscribe;
+    }, [user.uid]);
 
     const moneyIn = transactions
         .filter((transaction) => transaction.type === "in")
@@ -19,16 +43,10 @@ function Reports() {
         .filter((transaction) => transaction.type === "out")
         .reduce((total, transaction) => total + transaction.amount, 0);
 
-    const startingBalance =
-        Number(localStorage.getItem("startingBalance")) || 0;
-
     const balance =
         startingBalance + moneyIn - moneyOut;
 
     const totalTransactions = transactions.length;
-
-    const currency =
-        localStorage.getItem("currency") || "NGN";
 
     const currencySymbols = {
         NGN: "₦",
@@ -151,7 +169,10 @@ function Reports() {
 
                 <div className="p-4 border-t border-gray-200">
 
-                    <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50">
+                    <button
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
+                    >
                         🚪 Logout
                     </button>
 

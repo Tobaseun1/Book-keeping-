@@ -1,19 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
-const CATEGORIES = [
-    "Sales",
-    "Services",
-    "Salary",
-    "Rent",
-    "Food",
-    "Transport",
-    "Utilities",
-    "Marketing",
-    "Supplies",
-    "Savings",
-    "Other",
-];
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import {
+    addTransaction as addTransactionDoc,
+    deleteTransaction as deleteTransactionDoc,
+    saveProfile,
+    subscribeToProfile,
+    subscribeToTransactions,
+} from "../lib/firestore";
 
 const CURRENCY_SYMBOLS = {
     NGN: "₦",
@@ -36,41 +32,39 @@ function formatNumber(value) {
     return Number(value || 0).toLocaleString();
 }
 
-function getTransactions() {
-    try {
-        const saved = localStorage.getItem("transactions");
-        return saved ? JSON.parse(saved) : [];
-    } catch {
-        return [];
-    }
-}
-
 function Dashboard() {
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     /* =========================
        BASIC BUSINESS INFORMATION
     ========================= */
 
-    const businessName =
-        localStorage.getItem("businessName") || "My Business";
+    const [businessName, setBusinessName] = useState("My Business");
+    const [currency, setCurrency] = useState("NGN");
+    const [startingBalance, setStartingBalance] = useState(0);
+    const [categories, setCategories] = useState([]);
+    const [savingsTarget, setSavingsTargetState] = useState(null);
 
-    const currency =
-        localStorage.getItem("currency") || "NGN";
+    const currencySymbol = CURRENCY_SYMBOLS[currency] || "₦";
 
-    const currencySymbol =
-        CURRENCY_SYMBOLS[currency] || "₦";
+    useEffect(() => {
+        const unsubscribe = subscribeToProfile(user.uid, (profile) => {
+            setBusinessName(profile.businessName);
+            setCurrency(profile.currency);
+            setStartingBalance(Number(profile.startingBalance) || 0);
+            setCategories(profile.categories || []);
+            setSavingsTargetState(profile.savingsTarget);
+        });
 
-    const startingBalance =
-        Number(localStorage.getItem("startingBalance")) || 0;
+        return unsubscribe;
+    }, [user.uid]);
 
     /* =========================
        TRANSACTIONS
     ========================= */
 
-    const [transactions, setTransactions] = useState(
-        getTransactions()
-    );
+    const [transactions, setTransactions] = useState([]);
 
     const [transactionAmount, setTransactionAmount] =
         useState("");
@@ -79,7 +73,7 @@ function Dashboard() {
         useState("in");
 
     const [transactionCategory, setTransactionCategory] =
-        useState("Sales");
+        useState("");
 
     const [transactionDate, setTransactionDate] =
         useState(getToday());
@@ -90,21 +84,18 @@ function Dashboard() {
     const [transactionMessage, setTransactionMessage] =
         useState("");
 
+    useEffect(() => {
+        const unsubscribe = subscribeToTransactions(
+            user.uid,
+            setTransactions
+        );
+
+        return unsubscribe;
+    }, [user.uid]);
+
     /* =========================
        SAVINGS TARGET
     ========================= */
-
-    const [savingsTarget, setSavingsTarget] =
-        useState(() => {
-            try {
-                const saved =
-                    localStorage.getItem("savingsTarget");
-
-                return saved ? JSON.parse(saved) : null;
-            } catch {
-                return null;
-            }
-        });
 
     const [targetName, setTargetName] =
         useState("");
@@ -124,49 +115,10 @@ function Dashboard() {
     const [savingsMessage, setSavingsMessage] =
         useState("");
 
-    /* =========================
-       SAVE DATA
-    ========================= */
-
-    useEffect(() => {
-        localStorage.setItem(
-            "transactions",
-            JSON.stringify(transactions)
-        );
-    }, [transactions]);
-
-    useEffect(() => {
-        if (savingsTarget) {
-            localStorage.setItem(
-                "savingsTarget",
-                JSON.stringify(savingsTarget)
-            );
-        } else {
-            localStorage.removeItem("savingsTarget");
-        }
-    }, [savingsTarget]);
-
-    /* =========================
-       REFRESH TRANSACTIONS
-    ========================= */
-
-    useEffect(() => {
-        function refreshTransactions() {
-            setTransactions(getTransactions());
-        }
-
-        window.addEventListener(
-            "transactionsUpdated",
-            refreshTransactions
-        );
-
-        return () => {
-            window.removeEventListener(
-                "transactionsUpdated",
-                refreshTransactions
-            );
-        };
-    }, []);
+    function setSavingsTarget(nextTarget) {
+        setSavingsTargetState(nextTarget);
+        saveProfile(user.uid, { savingsTarget: nextTarget });
+    }
 
     /* =========================
        FINANCIAL CALCULATIONS
@@ -229,7 +181,7 @@ function Dashboard() {
        ADD TRANSACTION
     ========================= */
 
-    function handleAddTransaction(event) {
+    async function handleAddTransaction(event) {
         event.preventDefault();
 
         const amount = Number(transactionAmount);
@@ -241,19 +193,39 @@ function Dashboard() {
             return;
         }
 
-        const newTransaction = {
-            id: Date.now(),
+        const trimmedCategory = transactionCategory.trim();
+
+        if (!trimmedCategory) {
+            setTransactionMessage(
+                "Please enter a category."
+            );
+            return;
+        }
+
+        await addTransactionDoc(user.uid, {
             amount,
             type: transactionType,
-            category: transactionCategory,
+            category: trimmedCategory,
             date: transactionDate,
             note: transactionNote.trim(),
-        };
+        });
 
-        setTransactions((current) => [
-            newTransaction,
-            ...current,
-        ]);
+        const categoryExists = categories.some(
+            (category) =>
+                category.toLowerCase() ===
+                trimmedCategory.toLowerCase()
+        );
+
+        if (!categoryExists) {
+            const updatedCategories = [
+                ...categories,
+                trimmedCategory,
+            ];
+
+            saveProfile(user.uid, {
+                categories: updatedCategories,
+            });
+        }
 
         setTransactionAmount("");
         setTransactionNote("");
@@ -279,12 +251,7 @@ function Dashboard() {
 
         if (!confirmed) return;
 
-        setTransactions((current) =>
-            current.filter(
-                (transaction) =>
-                    transaction.id !== id
-            )
-        );
+        deleteTransactionDoc(user.uid, id);
     }
 
     /* =========================
@@ -339,7 +306,7 @@ function Dashboard() {
        ADD TO SAVINGS
     ========================= */
 
-    function handleAddSavings(event) {
+    async function handleAddSavings(event) {
         event.preventDefault();
 
         const amount = Number(savingsAmount);
@@ -374,14 +341,14 @@ function Dashboard() {
 
         const transactionId = Date.now();
 
-        const savingsTransaction = {
-            id: transactionId,
+        await addTransactionDoc(user.uid, {
             amount,
             type: "out",
             category: "Savings",
             date: getToday(),
             note: `Savings for ${savingsTarget.name}`,
-        };
+            savingsRecordId: transactionId,
+        });
 
         const savingsRecord = {
             id: transactionId,
@@ -390,18 +357,13 @@ function Dashboard() {
             date: getToday(),
         };
 
-        setTransactions((current) => [
-            savingsTransaction,
-            ...current,
-        ]);
-
-        setSavingsTarget((current) => ({
-            ...current,
+        setSavingsTarget({
+            ...savingsTarget,
             history: [
-                ...(current.history || []),
+                ...(savingsTarget.history || []),
                 savingsRecord,
             ],
-        }));
+        });
 
         setSavingsAmount("");
 
@@ -431,20 +393,22 @@ function Dashboard() {
 
         if (!confirmed) return;
 
-        setSavingsTarget((current) => ({
-            ...current,
-            history: current.history.filter(
+        setSavingsTarget({
+            ...savingsTarget,
+            history: savingsTarget.history.filter(
                 (item) => item.id !== id
             ),
-        }));
+        });
 
-        setTransactions((current) =>
-            current.filter(
-                (transaction) =>
-                    transaction.id !==
-                    record.transactionId
-            )
+        const linkedTransaction = transactions.find(
+            (transaction) =>
+                transaction.savingsRecordId ===
+                record.transactionId
         );
+
+        if (linkedTransaction) {
+            deleteTransactionDoc(user.uid, linkedTransaction.id);
+        }
     }
 
     /* =========================
@@ -567,7 +531,7 @@ function Dashboard() {
             .join("\n");
 
         const blob = new Blob(
-            ["\uFEFF" + csv],
+            ["﻿" + csv],
             {
                 type: "text/csv;charset=utf-8;",
             }
@@ -593,10 +557,7 @@ function Dashboard() {
     ========================= */
 
     function handleSignOut() {
-        localStorage.removeItem(
-            "bookkeepingUser"
-        );
-
+        signOut(auth);
         navigate("/login");
     }
 
@@ -675,17 +636,17 @@ function Dashboard() {
                     </button>
                 </div>
 
-            </aside >
+            </aside>
 
             {/* =========================
                 MAIN CONTENT
             ========================= */}
 
-            < main className="lg:ml-64" >
+            <main className="lg:ml-64">
 
                 {/* HEADER */}
 
-                < header className="border-b border-gray-200 bg-white px-6 py-5 md:px-8" >
+                <header className="border-b border-gray-200 bg-white px-6 py-5 md:px-8">
 
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
@@ -708,7 +669,7 @@ function Dashboard() {
 
                     </div>
 
-                </header >
+                </header>
 
                 <div className="space-y-8 p-6 md:p-8">
 
@@ -1167,24 +1128,28 @@ function Dashboard() {
                                     Category
                                 </label>
 
-                                <select
+                                <input
+                                    type="text"
+                                    list="category-suggestions"
                                     value={transactionCategory}
                                     onChange={(e) =>
                                         setTransactionCategory(e.target.value)
                                     }
+                                    placeholder="Type or pick a category"
+                                    required
                                     className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
-                                >
-                                    {CATEGORIES.map(
+                                />
+
+                                <datalist id="category-suggestions">
+                                    {categories.map(
                                         (category) => (
                                             <option
                                                 key={category}
                                                 value={category}
-                                            >
-                                                {category}
-                                            </option>
+                                            />
                                         )
                                     )}
-                                </select>
+                                </datalist>
                             </div>
 
                             <div>
@@ -1403,9 +1368,9 @@ function Dashboard() {
 
                 </div>
 
-            </main >
+            </main>
 
-        </div >
+        </div>
     );
 }
 

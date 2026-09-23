@@ -1,31 +1,45 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import { saveProfile, subscribeToProfile } from "../lib/firestore";
 
 function Settings() {
-    const [businessName, setBusinessName] = useState(
-        localStorage.getItem("businessName") || "My Business"
-    );
+    const navigate = useNavigate();
+    const { user } = useAuth();
 
-    const [currency, setCurrency] = useState(
-        localStorage.getItem("currency") || "NGN"
-    );
+    function handleSignOut() {
+        signOut(auth);
+        navigate("/login");
+    }
 
-    const [startingBalance, setStartingBalance] = useState(
-        localStorage.getItem("startingBalance") || ""
-    );
-
-    const [description, setDescription] = useState(
-        localStorage.getItem("businessDescription") || ""
-    );
-
+    const [businessName, setBusinessName] = useState("");
+    const [currency, setCurrency] = useState("NGN");
+    const [startingBalance, setStartingBalance] = useState("");
+    const [description, setDescription] = useState("");
     const [saved, setSaved] = useState(false);
 
-    function saveSettings(e) {
+    useEffect(() => {
+        const unsubscribe = subscribeToProfile(user.uid, (profile) => {
+            setBusinessName(profile.businessName);
+            setCurrency(profile.currency);
+            setStartingBalance(String(profile.startingBalance ?? ""));
+            setDescription(profile.businessDescription);
+        });
+
+        return unsubscribe;
+    }, [user.uid]);
+
+    async function saveSettings(e) {
         e.preventDefault();
 
-        localStorage.setItem("businessName", businessName);
-        localStorage.setItem("currency", currency);
-        localStorage.setItem("startingBalance", startingBalance);
-        localStorage.setItem("businessDescription", description);
+        await saveProfile(user.uid, {
+            businessName,
+            currency,
+            startingBalance: Number(startingBalance) || 0,
+            businessDescription: description,
+        });
 
         setSaved(true);
 
@@ -95,7 +109,10 @@ function Settings() {
 
                 <div className="p-4 border-t border-gray-200">
 
-                    <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50">
+                    <button
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
+                    >
                         🚪 Logout
                     </button>
 
@@ -279,7 +296,7 @@ function Settings() {
                                 </p>
                             ) : (
                                 <p className="text-sm text-gray-500">
-                                    Your settings are saved in this browser.
+                                    Your settings are saved to your account.
                                 </p>
                             )}
 

@@ -1,38 +1,59 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "../firebase";
+
+function getSignUpErrorMessage(error) {
+    switch (error.code) {
+        case "auth/email-already-in-use":
+            return "An account with that email already exists.";
+        case "auth/invalid-email":
+            return "Enter a valid email address.";
+        case "auth/weak-password":
+            return "Password must be at least 6 characters.";
+        default:
+            return "Something went wrong. Please try again.";
+    }
+}
 
 function SignUp() {
     const navigate = useNavigate();
 
     const [name, setName] = useState("");
-    const [contact, setContact] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
         event.preventDefault();
 
-        const value = contact.trim();
-
-        if (!name || !value || !password) {
+        if (!name.trim() || !email.trim() || !password) {
             setError("Please fill in all fields.");
             return;
         }
 
-        if (password.length < 6) {
-            setError("Password must be at least 6 characters.");
-            return;
+        setSubmitting(true);
+        setError("");
+
+        try {
+            const credential = await createUserWithEmailAndPassword(
+                auth,
+                email.trim(),
+                password
+            );
+
+            await updateProfile(credential.user, {
+                displayName: name.trim(),
+            });
+
+            navigate("/business-registration");
+        } catch (err) {
+            console.error("Sign up failed:", err.code, err.message);
+            setError(getSignUpErrorMessage(err));
+        } finally {
+            setSubmitting(false);
         }
-
-        localStorage.setItem(
-            "bookkeepingUser",
-            JSON.stringify({
-                name: name,
-                contact: value,
-            })
-        );
-
-        navigate("/business-registration");
     }
 
     return (
@@ -79,13 +100,14 @@ function SignUp() {
                     </label>
 
                     <label className="block text-sm font-semibold text-gray-700">
-                        Email or Phone Number
+                        Email address
 
                         <input
-                            type="text"
-                            value={contact}
-                            onChange={(event) => setContact(event.target.value)}
-                            placeholder="Email or +234 814 125 2897"
+                            type="email"
+                            autoComplete="email"
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                            placeholder="you@example.com"
                             required
                             className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
@@ -96,6 +118,7 @@ function SignUp() {
 
                         <input
                             type="password"
+                            autoComplete="new-password"
                             value={password}
                             onChange={(event) => setPassword(event.target.value)}
                             placeholder="Create a password"
@@ -106,9 +129,10 @@ function SignUp() {
 
                     <button
                         type="submit"
-                        className="w-full rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+                        disabled={submitting}
+                        className="w-full rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        Create Account
+                        {submitting ? "Creating account..." : "Create Account"}
                     </button>
 
                 </form>

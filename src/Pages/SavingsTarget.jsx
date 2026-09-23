@@ -1,34 +1,43 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import { saveProfile, subscribeToProfile } from "../lib/firestore";
 
 function SavingsTarget() {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
+    function handleSignOut() {
+        signOut(auth);
+        navigate("/login");
+    }
+
     // =========================
     // SAVINGS TARGETS
     // =========================
-    const [targets, setTargets] = useState(() => {
-        const saved = localStorage.getItem("savingsTargets");
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [targets, setTargets] = useState([]);
+    const [currency, setCurrency] = useState("NGN");
 
     const [targetName, setTargetName] = useState("");
     const [targetAmount, setTargetAmount] = useState("");
     const [savedAmount, setSavedAmount] = useState("");
     const [targetDate, setTargetDate] = useState("");
 
-    // =========================
-    // SAVE TARGETS
-    // =========================
     useEffect(() => {
-        localStorage.setItem(
-            "savingsTargets",
-            JSON.stringify(targets)
-        );
-    }, [targets]);
+        const unsubscribe = subscribeToProfile(user.uid, (profile) => {
+            setTargets(profile.savingsTargets || []);
+            setCurrency(profile.currency);
+        });
 
-    // =========================
-    // CURRENCY
-    // =========================
-    const currency =
-        localStorage.getItem("currency") || "NGN";
+        return unsubscribe;
+    }, [user.uid]);
+
+    function updateTargets(nextTargets) {
+        setTargets(nextTargets);
+        saveProfile(user.uid, { savingsTargets: nextTargets });
+    }
 
     const currencySymbols = {
         NGN: "₦",
@@ -62,7 +71,7 @@ function SavingsTarget() {
             targetDate,
         };
 
-        setTargets([
+        updateTargets([
             newTarget,
             ...targets,
         ]);
@@ -97,7 +106,7 @@ function SavingsTarget() {
             return target;
         });
 
-        setTargets(updatedTargets);
+        updateTargets(updatedTargets);
     }
 
     // =========================
@@ -108,7 +117,7 @@ function SavingsTarget() {
             (target) => target.id !== id
         );
 
-        setTargets(updatedTargets);
+        updateTargets(updatedTargets);
     }
 
     return (
@@ -187,7 +196,10 @@ function SavingsTarget() {
 
                 <div className="p-4 border-t border-gray-200">
 
-                    <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50">
+                    <button
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50"
+                    >
                         <span>🚪</span>
                         Logout
                     </button>

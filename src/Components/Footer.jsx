@@ -55,9 +55,7 @@ function Footer() {
                                 Contact Us
                             </Link>
 
-                            <a href="#" className="hover:text-white transition">
-                                Privacy
-                            </a>
+
                         </div>
                     </div>
 

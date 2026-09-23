@@ -1,55 +1,65 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import {
+    saveProfile,
+    subscribeToProfile,
+    subscribeToTransactions,
+} from "../lib/firestore";
 
-const DEFAULT_CATEGORIES = [];
+function mergeCategories(savedCategories, transactions) {
+    const transactionCategories = transactions
+        .map((transaction) => transaction.category)
+        .filter(Boolean);
 
-function getCategories() {
-    try {
-        const saved = localStorage.getItem("categories");
-        return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
-    } catch {
-        return DEFAULT_CATEGORIES;
-    }
+    const merged = [...savedCategories];
+
+    transactionCategories.forEach((category) => {
+        const exists = merged.some(
+            (existing) =>
+                existing.toLowerCase() === category.toLowerCase()
+        );
+
+        if (!exists) {
+            merged.push(category);
+        }
+    });
+
+    return merged;
 }
 
 function Categories() {
+    const { user } = useAuth();
+
     const [transactions, setTransactions] = useState([]);
-    const [categories, setCategories] = useState(getCategories);
+    const [savedCategories, setSavedCategories] = useState([]);
+    const [currency, setCurrency] = useState("NGN");
     const [newCategory, setNewCategory] = useState("");
 
     useEffect(() => {
-        loadTransactions();
+        const unsubscribe = subscribeToTransactions(
+            user.uid,
+            setTransactions
+        );
 
-        window.addEventListener("transactionsUpdated", loadTransactions);
-
-        return () => {
-            window.removeEventListener(
-                "transactionsUpdated",
-                loadTransactions
-            );
-        };
-    }, []);
+        return unsubscribe;
+    }, [user.uid]);
 
     useEffect(() => {
-        function loadCategories() {
-            setCategories(getCategories());
+        const unsubscribe = subscribeToProfile(user.uid, (profile) => {
+            setSavedCategories(profile.categories || []);
+            setCurrency(profile.currency);
+        });
+
+        return unsubscribe;
+    }, [user.uid]);
+
+    const categories = mergeCategories(savedCategories, transactions);
+
+    useEffect(() => {
+        if (categories.length !== savedCategories.length) {
+            saveProfile(user.uid, { categories });
         }
-
-        window.addEventListener("categoriesUpdated", loadCategories);
-
-        return () => {
-            window.removeEventListener("categoriesUpdated", loadCategories);
-        };
-    }, []);
-
-    function loadTransactions() {
-        const saved = localStorage.getItem("transactions");
-
-        if (saved) {
-            setTransactions(JSON.parse(saved));
-        } else {
-            setTransactions([]);
-        }
-    }
+    }, [categories.length, savedCategories.length, user.uid]);
 
     function handleAddCategory(event) {
         event.preventDefault();
@@ -67,17 +77,12 @@ function Categories() {
             return;
         }
 
-        const updated = [...categories, trimmed];
+        saveProfile(user.uid, {
+            categories: [...categories, trimmed],
+        });
 
-        localStorage.setItem("categories", JSON.stringify(updated));
-        setCategories(updated);
         setNewCategory("");
-
-        window.dispatchEvent(new Event("categoriesUpdated"));
     }
-
-    const currency =
-        localStorage.getItem("currency") || "NGN";
 
     const currencySymbols = {
         NGN: "₦",

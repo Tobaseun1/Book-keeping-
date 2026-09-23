@@ -1,39 +1,44 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
+
+function getLoginErrorMessage(error) {
+    switch (error.code) {
+        case "auth/invalid-email":
+            return "Enter a valid email address.";
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+        case "auth/invalid-credential":
+            return "Email or password is incorrect.";
+        case "auth/too-many-requests":
+            return "Too many attempts. Please try again later.";
+        default:
+            return "Something went wrong. Please try again.";
+    }
+}
 
 function Login() {
     const navigate = useNavigate();
-    const [contact, setContact] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
         event.preventDefault();
-        const value = contact.trim();
-        const digits = value.replace(/\D/g, "");
-        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-        const isPhone = digits.length >= 10 && digits.length <= 15;
-        const savedUser = JSON.parse(localStorage.getItem("bookkeepingUser"));
 
-        if (!isEmail && !isPhone) {
-            setError("Enter a valid email address or phone number.");
-            return;
-        }
-        if (!savedUser) {
-            setError("No account found. Please sign up first.");
-            return;
-        }
-        if (value !== savedUser.contact) {
-            setError("Email or phone number is incorrect.");
-            return;
-        }
-        if (password.length < 6) {
-            setError("Your password must be at least 6 characters.");
-            return;
-        }
+        setSubmitting(true);
+        setError("");
 
-        localStorage.setItem("bookkeepingUser", JSON.stringify(savedUser));
-        navigate("/dashboard");
+        try {
+            await signInWithEmailAndPassword(auth, email.trim(), password);
+            navigate("/dashboard");
+        } catch (err) {
+            setError(getLoginErrorMessage(err));
+        } finally {
+            setSubmitting(false);
+        }
     }
 
     return (
@@ -47,14 +52,16 @@ function Login() {
                 {error && <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</div>}
                 <form onSubmit={handleSubmit} className="mt-7 space-y-5">
                     <label className="block text-sm font-semibold text-gray-700">
-                        Email address or phone number
-                        <input type="text" inputMode="email" autoComplete="username" value={contact} onChange={(event) => { setContact(event.target.value); setError(""); }} placeholder="you@example.com or +234 814 125 2897" required className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                        Email address
+                        <input type="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setError(""); }} placeholder="you@example.com" required className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
                     </label>
                     <label className="block text-sm font-semibold text-gray-700">
                         Password
                         <input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
                     </label>
-                    <button type="submit" className="w-full rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700">Log in</button>
+                    <button type="submit" disabled={submitting} className="w-full rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                        {submitting ? "Signing in..." : "Log in"}
+                    </button>
                 </form>
                 <p className="mt-6 text-center text-sm text-gray-600">Don't have an account? <Link to="/signup" className="font-semibold text-blue-600 hover:text-blue-700">Sign up</Link></p>
                 <p className="mt-4 text-center text-sm text-gray-500">Your account details are kept private and secure.</p>

@@ -1,11 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
+import { useAuth } from "../context/AuthContext";
 
 function Navbar() {
     const navigate = useNavigate();
-    const isLoggedIn = localStorage.getItem("bookkeepingUser");
+    const { user } = useAuth();
+    const isLoggedIn = Boolean(user);
 
     function handleSignOut() {
-        localStorage.removeItem("bookkeepingUser");
+        signOut(auth);
         navigate("/login");
     }
 

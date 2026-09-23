@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { subscribeToInvoices, subscribeToProfile } from "../lib/firestore";
 
 const CURRENCY_SYMBOLS = {
     NGN: "₦",
@@ -7,29 +10,30 @@ const CURRENCY_SYMBOLS = {
     EUR: "€",
 };
 
-function getCurrencySymbol() {
-    const currency = localStorage.getItem("currency") || "NGN";
-    return CURRENCY_SYMBOLS[currency] || "₦";
-}
-
-function getInvoices() {
-    try {
-        const saved = localStorage.getItem("invoices");
-        return saved ? JSON.parse(saved) : [];
-    } catch {
-        return [];
-    }
-}
-
 function Receipts() {
-    const invoices = getInvoices();
+    const { user } = useAuth();
+    const [invoices, setInvoices] = useState([]);
+    const [currency, setCurrency] = useState("NGN");
+    const [businessName, setBusinessName] = useState("My Business");
+
+    useEffect(() => {
+        const unsubscribe = subscribeToInvoices(user.uid, setInvoices);
+        return unsubscribe;
+    }, [user.uid]);
+
+    useEffect(() => {
+        const unsubscribe = subscribeToProfile(user.uid, (profile) => {
+            setCurrency(profile.currency);
+            setBusinessName(profile.businessName);
+        });
+        return unsubscribe;
+    }, [user.uid]);
+
     const paidInvoices = invoices.filter(
         (invoice) => invoice.status === "Paid"
     );
 
-    const currencySymbol = getCurrencySymbol();
-    const businessName =
-        localStorage.getItem("businessName") || "My Business";
+    const currencySymbol = CURRENCY_SYMBOLS[currency] || "₦";
 
     function printReceipt(invoice) {
         const printWindow = window.open(

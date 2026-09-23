@@ -1,48 +1,36 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import {
+    deleteTransaction as deleteTransactionDoc,
+    subscribeToProfile,
+    subscribeToTransactions,
+} from "../lib/firestore";
 
 function Transactions() {
+    const { user } = useAuth();
     const [transactions, setTransactions] = useState([]);
+    const [currency, setCurrency] = useState("NGN");
 
     useEffect(() => {
-        loadTransactions();
+        const unsubscribe = subscribeToTransactions(
+            user.uid,
+            setTransactions
+        );
 
-        window.addEventListener("transactionsUpdated", loadTransactions);
+        return unsubscribe;
+    }, [user.uid]);
 
-        return () => {
-            window.removeEventListener(
-                "transactionsUpdated",
-                loadTransactions
-            );
-        };
-    }, []);
+    useEffect(() => {
+        const unsubscribe = subscribeToProfile(user.uid, (profile) => {
+            setCurrency(profile.currency);
+        });
 
-    function loadTransactions() {
-        const saved = localStorage.getItem("transactions");
-
-        if (saved) {
-            setTransactions(JSON.parse(saved));
-        } else {
-            setTransactions([]);
-        }
-    }
+        return unsubscribe;
+    }, [user.uid]);
 
     function deleteTransaction(id) {
-        const updatedTransactions = transactions.filter(
-            (transaction) => transaction.id !== id
-        );
-
-        localStorage.setItem(
-            "transactions",
-            JSON.stringify(updatedTransactions)
-        );
-
-        setTransactions(updatedTransactions);
-
-        window.dispatchEvent(new Event("transactionsUpdated"));
+        deleteTransactionDoc(user.uid, id);
     }
-
-    const currency =
-        localStorage.getItem("currency") || "NGN";
 
     const currencySymbols = {
         NGN: "₦",
